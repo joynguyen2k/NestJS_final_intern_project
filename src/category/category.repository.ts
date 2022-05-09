@@ -25,7 +25,7 @@ export class CategoryRepository extends Repository<Category>{
     async getCategory(getCategoryDto: GetCategoryDto):Promise<Category[]>{
         const {keyword, order, by, size, page}= getCategoryDto;
         const query = this.createQueryBuilder('category')
-                            .innerJoinAndSelect('category.categoryBanner','category_banner')
+                            .leftJoinAndSelect('category.categoryBanner','category_banner')
                             .orderBy('category_banner.position')
                             ;
         if(keyword){

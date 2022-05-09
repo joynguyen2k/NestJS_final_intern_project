@@ -1,4 +1,5 @@
 import { CategoryBanner } from 'src/category-banner/entities/category-banner.entity';
+import { Items } from 'src/items/entities/items.entity';
 import { BaseEntity, Column, Entity, JoinColumn, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { CategoryStatus } from '../enums/category.enums';
 
@@ -18,4 +19,8 @@ export class Category extends BaseEntity {
   @OneToMany(_type => CategoryBanner, categoryBanner => categoryBanner.category)
   @JoinColumn({referencedColumnName: 'categoryId'})
   categoryBanner: CategoryBanner[]
+  
+  @OneToMany(_type => Items, items => items.category)
+  @JoinColumn({referencedColumnName: 'id'})
+  items: Items[]
 }
