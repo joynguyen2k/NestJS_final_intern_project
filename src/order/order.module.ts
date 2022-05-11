@@ -11,6 +11,7 @@ import { OrderService } from './order.service';
 import { PassportModule } from '@nestjs/passport';
 import { ItemsModule } from 'src/items/items.module';
 import { NestjsFormDataModule } from 'nestjs-form-data';
+import { FlashsaleModule } from 'src/flashsale/flashsale.module';
 
 
 @Module({
@@ -22,6 +23,7 @@ import { NestjsFormDataModule } from 'nestjs-form-data';
     UserModule,
     VoucherModule,
     ItemsModule,
+    FlashsaleModule,
     NestjsFormDataModule
   ],
   controllers: [OrderController],

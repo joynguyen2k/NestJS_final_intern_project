@@ -13,6 +13,7 @@ import * as moment from "moment";
 import { OrderStatus } from './enum/order-status.enum';
 import { GetOrderDto } from './dtos/get-order.dto';
 import { UpdateStatusOrderDto } from './dtos/update-status.dto';
+import { FlashsaleService } from 'src/flashsale/flashsale.service';
 
 @Injectable()
 export class OrderService {
@@ -22,10 +23,13 @@ export class OrderService {
       @InjectRepository(OrderDetail)
       private OrderDetailRepository: Repository<OrderDetail>,
       private voucherService: VoucherService,
-      private itemsService: ItemsService
+      private itemsService: ItemsService,
+      private flashsaleService: FlashsaleService
     ){}
     async createOrder(createOrderDto: CreateOrderDto, user: User){
       const {code, address, itemOrder}= createOrderDto;
+      console.log('item', itemOrder);
+      
       const currentDate = moment().format();
       
       let sumWeight = 0;
@@ -39,41 +43,53 @@ export class OrderService {
 
 
       // Insert into order detail
+      console.log(itemOrder);
       
       for(let i =0; i< itemOrder.length; i++){
-        let item= await this.itemsService.getItemByFlashsale(itemOrder[i].itemsId);
-
-        // If item of flashsale exist and quantity >0
-        if(item && item.itemFlashsale[0].quantity > 0   ){
+        // let item= await this.itemsService.getItemByFlashsale(itemOrder[i].itemsId);
+        // // If item of flashsale exist and quantity >0
+        // if(item && item.itemFlashsale[0].quantity > 0   ){
+        //   console.log('abc');
           
-          item.itemFlashsale[0].quantity -= itemOrder[i].quantity;
-          // item.itemFlashsale[0].save();
-        }else{
-          item = await this.itemsService.getItemById(itemOrder[i].itemsId);
-          item.priceNew = item.price;
-        }
-        // If item flashsale not exist
-        if(!item){
-          item = await this.itemsService.getItemById(itemOrder[i].itemsId)
+        //   item.itemFlashsale[0].quantity -= itemOrder[i].quantity;
+        //   // item.itemFlashsale[0].save();
+        // }else{
+        //   console.log('xyz');
+          
+        //   item = await this.itemsService.getItemById(itemOrder[i].itemsId);
+        //   item.priceNew = item.price;
+        // }
+        // // If item flashsale not exist
+        // if(!item){
+        //   item = await this.itemsService.getItemById(itemOrder[i].itemsId)
 
+        // }
+        let item = await this.itemsService.getItemOrder(itemOrder[i].itemsId);
+        if(item &&item.itemFlashsale && item.itemFlashsale[0].quantity >=  itemOrder[i].quantity){
+          console.log(78909123);
+          console.log('fs',item.itemFlashsale[0].id);
+          await this.flashsaleService.decreaseQuantityFlashsale(item.itemFlashsale[0].id, item.id, itemOrder[i].quantity )
+        }else if(item && item.quantity >=  itemOrder[i].quantity){
+          console.log(99999999);
+          await this.itemsService.decreaseQuantityItems(itemOrder[i].itemsId,itemOrder[i].quantity )
+        }else{
+          throw new BadRequestException('Quantity is not enough to order')
         }
         // calculation
         sumWeight += item.weight * itemOrder[i].quantity;
         totalPrice += item.priceNew * itemOrder[i].quantity;
         item.quantity = itemOrder[i].quantity;
         // decrease quantity
-        let newItem= await this.itemsService.decreaseQuantityItems(itemOrder[i].itemsId,itemOrder[i].quantity )
-        itemList.push(item);
-        
+        itemList.push(item);        
       }
 
-      // console.log('item', itemList);
+      console.log('item', itemList);
       
       // Shipping Price
       if(sumWeight < 1) shippingPrice = 20000
       else if(sumWeight >= 1 && sumWeight < 3) shippingPrice = 30000
       else shippingPrice = sumWeight * 5000;
-      
+
       let totalPriceVoucher: number = totalPrice;
       let shippingPriceVoucher :number = shippingPrice;
       // Get voucher
@@ -85,7 +101,6 @@ export class OrderService {
         // Discount total money
         if(voucherOrder.discount > 100){
           // voucher discount 
-            console.log('discount money');
             
           if(voucherOrder.type === VoucherType.DISCOUNT) {
               
@@ -94,7 +109,6 @@ export class OrderService {
                 if(totalPrice >= min ){
                     discountPrice =  voucherOrder.discount ;
 
-                  console.log('discount',discountPrice );
                   
                   
                   totalPriceVoucher = totalPrice -  discountPrice;
@@ -174,6 +188,7 @@ export class OrderService {
             quantity: itemList[i].quantity,
             price: itemList[i].priceNew,
             items: itemList[i],
+
   
             createdAt: currentDate,
             order: order
@@ -203,7 +218,7 @@ export class OrderService {
           quantity: itemList[i].quantity,
           price: itemList[i].priceNew,
           items: itemList[i],
-
+          itemFlashsale: itemList[i].itemFlashsale[i],
           createdAt: currentDate,
           order: order
         })

@@ -37,9 +37,8 @@ export class CronService {
                         startSale
                      )
                     await this.flashsaleService.updateSendMail(flashsaleList[i].id);
-                }else{
-                    return
-                }
+                }else return
+                
              
             }
         }
@@ -52,9 +51,9 @@ export class CronService {
         const time = moment().subtract(5, 'minutes').format();
         const itemsDuringFlashsale = await this.itemsService.updateItemDuringFlashsale(currentDate);
         const itemsAfterFlashsale = await this.itemsService.updateItemAfterFlashsale(time,currentDate)
-        console.log('after', itemsAfterFlashsale);
+        // console.log('after', itemsAfterFlashsale);
 
-        console.log('during', itemsDuringFlashsale);
+        // console.log('during', itemsDuringFlashsale);
         
         
     }

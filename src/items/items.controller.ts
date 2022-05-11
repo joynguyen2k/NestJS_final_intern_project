@@ -78,9 +78,16 @@ export class ItemsController {
     }
     @Public()
     @Get('/during')
-    async updateItemDuringFlashsale( time: string){
+    async updateItemDuringFlashsale(){
       const currentDate = moment().format();
       return await this.itemsService.updateItemDuringFlashsale(currentDate)
+    }
+    @Public()
+    @Get('/after')
+    async updateItemAfterFlashsale(){
+      const currentDate = moment().format();
+      const time = moment().subtract(5, 'minutes').format();
+      return await this.itemsService.updateItemAfterFlashsale(time,currentDate)
     }
 
     @Public()
