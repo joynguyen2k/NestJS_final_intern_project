@@ -17,7 +17,7 @@ export class OrderController {
         private orderService: OrderService
     ){}
 
-    @UseGuards(AuthGuard(), RolesGuard)
+    @UseGuards(AuthGuard())
     @Roles(Role.ADMIN, Role.SUPERADMIN)
     @Patch(':id')
     @FormDataRequest()
@@ -26,7 +26,7 @@ export class OrderController {
         return await this.orderService.updateStatusOrder(id, updateStatusOrderDto)
     }
     
-    @UseGuards(AuthGuard(), RolesGuard)
+    @UseGuards(AuthGuard())
     @Roles( Role.SUPERADMIN)
     @Delete(':id')
     async deleteOrder(@Param('id') id: string){

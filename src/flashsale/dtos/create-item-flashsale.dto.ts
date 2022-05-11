@@ -1,11 +1,11 @@
-import { IsNotEmpty, IsNumber, IsUUID } from "class-validator";
+import { IsNotEmpty, IsNumber, IsNumberString, IsUUID } from "class-validator";
 
 export class ItemFlashsaleDto{
-    // @IsNotEmpty()
-    // @IsNumber()
+    @IsNotEmpty()
+    @IsNumberString()
     quantity: number;
-    // @IsNotEmpty()
-    // @IsNumber()
+    @IsNotEmpty()
+    @IsNumberString()
     discount: number;
     // @IsUUID()
     itemsId: string

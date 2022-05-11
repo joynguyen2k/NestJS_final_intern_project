@@ -10,7 +10,7 @@ import { CategoryStatus } from './enums/category.enums';
 
 @EntityRepository(Category)
 export class CategoryRepository extends Repository<Category>{
-    async createCategory(createCategoryDto: CreateCategoryDto):Promise<Category>{
+    async createCategory(createCategoryDto: CreateCategoryDto, files: any):Promise<Category>{
         const {name, status} = createCategoryDto;
         const currentDate= moment().format();
         const category=this.create({

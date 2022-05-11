@@ -42,11 +42,14 @@ export class ItemsService {
 
     }
     async createItems(createItemsDto: CreateItemsDto,files:any){
-        const {avatar, images}= files
+        const {avatar, images}= files;
+        const {price}= createItemsDto;
         const currentDate= moment().format()
         const items = await this.ItemsRepository.save({
             ...createItemsDto,
             status: ItemsStatus.ACTIVE,
+            priceNew: price,
+            isSale: false,
             avatar: avatar[0].path,
             createdAt: currentDate
 
@@ -148,16 +151,12 @@ export class ItemsService {
         console.log(query.getSql());
         console.log(query2.getSql());
     }
-    async getItemsByFlashsale(itemsId:string){
+    async getItemByFlashsale(itemsId:string){
         
         const currentDate = moment().utcOffset('0').format()
         const query= await this.ItemsRepository.createQueryBuilder('items')
                                                 .leftJoinAndSelect('items.itemFlashsale','item_flashsale')
-                                                .leftJoin('item_flashsale.flashsale', 'flashsale')
                                                 .where(`items.status = 'ACTIVE' `)
-                                                .andWhere(`item_flashsale.itemsId = '${itemsId}'`)
-                                                .andWhere(`:currentDate >=  flashsale.startSale`, {currentDate})
-                                                .andWhere(`:currentDate <=  flashsale.endSale`, {currentDate})
                                                 .andWhere('item_flashsale.quantity > 0')
                                                 .orderBy('item_flashsale.discount','DESC')
                                                 // .limit(0)
@@ -172,5 +171,55 @@ export class ItemsService {
         const item = await this.ItemsRepository.findOne({id: itemsId})
         item.quantity -= quantity;
         return await this.ItemsRepository.save(item);
+    }
+
+    async updateItemDuringFlashsale(time: string){
+        
+        const items = await this.ItemsRepository.createQueryBuilder('items')
+                                                        .innerJoinAndSelect('items.itemFlashsale','item_flashsale')
+                                                        .leftJoin('item_flashsale.flashsale', 'flashsale')
+                                                        .where(`items.status = 'ACTIVE' `)
+                                                        .andWhere(`:time >=  flashsale.startSale`, {time})
+                                                        .andWhere(`:time <=  flashsale.endSale`, {time})
+                                                        .andWhere('item_flashsale.quantity > 0')
+                                                        .orderBy('item_flashsale.discount','DESC')
+                                                        .getMany();
+        
+        
+        if(items){
+            for(let i =0; i< items.length; i++){
+                items[i].isSale = true;
+                items[i].priceNew = items[i].price - (items[i].price * (items[i].itemFlashsale[0].discount/100));
+                await items[i].save()
+            }
+
+        }
+        return items;
+        
+        
+       
+    }
+    async updateItemAfterFlashsale(time: string, currentDate: string){
+        
+        const items = await this.ItemsRepository.createQueryBuilder('items')
+                                                        .innerJoinAndSelect('items.itemFlashsale','item_flashsale')
+                                                        .leftJoin('item_flashsale.flashsale', 'flashsale')
+                                                        .where(`:currentDate >=  flashsale.endSale`, {currentDate})
+                                                        .where(`:time <=  flashsale.endSale`, {time})
+                                                        .getMany();
+        
+        if(items){
+            for(let i =0; i< items.length; i++){
+                items[i].isSale = false;
+                items[i].priceNew = items[i].price;
+                items[i].quantity += items[i].itemFlashsale[0].quantity;
+                await this.ItemsRepository.save(items[i]);
+            }
+
+        }
+        return items;
+        
+        
+       
     }
 }

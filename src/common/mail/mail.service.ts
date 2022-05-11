@@ -85,7 +85,7 @@ export class MailService {
             throw new BadRequestException(`Send mail fail!`)
         }
     }
-    async sendEmailFlashsale(url: string, flashsale_name: string, mailList: string[], startSale: string  ){
+    async sendEmailFlashsale(url: string, flashsale_name: string,flashsale_description: string, mailList: string[], startSale: string,   ){
         try{
             console.log('222222222222');
             
@@ -176,7 +176,7 @@ export class MailService {
               
                   <h1>${flashsale_name}</h1>
               
-                  <p id="sec_para">Đừng bỏ lỡ cơ hội săn sale và nhận quà !!!!!
+                  <p id="sec_para">${flashsale_description}
                   </p>
               
                   <h1 id="sec_para">Vào ngày: <strong>${startSale}</strong>

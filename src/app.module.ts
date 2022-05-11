@@ -13,6 +13,10 @@ import { OrderModule } from './order/order.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ConfigModule } from '@nestjs/config';
 import { CronModule } from './common/cron/cron.module';
+import { APP_GUARD } from '@nestjs/core';
+import { RolesGuard } from './auth/role.guard';
+import { AuthGuard } from '@nestjs/passport';
+import { JwtAuthGuard } from './auth/jwt.guard';
 
 @Module({
   imports: [
@@ -42,6 +46,18 @@ import { CronModule } from './common/cron/cron.module';
     CronModule
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+      
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
+    }, 
+  ],
 })
 export class AppModule {}

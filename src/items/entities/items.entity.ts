@@ -18,6 +18,8 @@ export class Items extends BaseEntity {
   @Column({nullable:true, type:'float'})
   price: number;
   @Column({nullable:true, type:'float'})
+  priceNew: number;
+  @Column({nullable:true, type:'float'})
   weight: number;
   @Column({nullable:true, type:'varchar'})
   avatar: string;
@@ -27,11 +29,14 @@ export class Items extends BaseEntity {
   description: string;
   @Column({nullable:true})
   status: ItemsStatus;
+  @Column({nullable: true, default: false})
+  isSale: Boolean;
   @Column({type: 'timestamptz', nullable: true})
   createdAt: Date;
   @Column({type: 'timestamptz', nullable: true})
   updatedAt: Date;
-
+  @Column({nullable: true})
+  categoryId: string;
   @ManyToOne(_type => Category, category => category.items)
   @JoinColumn({referencedColumnName: 'id'})
   category: Category

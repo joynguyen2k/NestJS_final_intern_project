@@ -9,6 +9,8 @@ export class Flashsale extends BaseEntity{
     name: string;
     @Column({nullable: true})
     description: string;
+    @Column({nullable: true})
+    isSendMail: boolean;
     @Column({type:'timestamptz'})
     startSale: Date;
     @Column({type:'timestamptz'})

@@ -1,11 +1,13 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
-import { ApiBody } from '@nestjs/swagger';
+import { ApiBody, ApiTags } from '@nestjs/swagger';
 import { FormDataRequest } from 'nestjs-form-data';
 import { CreateVoucherDto } from './dtos/create-voucher.dto';
 import { GetVoucherDto } from './dtos/get-voucher.dto';
 import { VoucherService } from './voucher.service';
 
 @Controller('voucher')
+@ApiTags('Voucher')
+
 export class VoucherController {
     constructor(
         private voucherService: VoucherService

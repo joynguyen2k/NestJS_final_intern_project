@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { CreateVoucherDto } from './dtos/create-voucher.dto';
 import { GetVoucherDto } from './dtos/get-voucher.dto';
 import { Voucher } from './entity/voucher.entity';
+import { VoucherType } from './enum/voucher.enum';
 
 @Injectable()
 export class VoucherService {
@@ -89,5 +90,84 @@ export class VoucherService {
         const voucher = await this.getVoucherByCode(code);
         voucher.quantity -= 1;
         return await this.VoucherRepository.save(voucher)
+    }
+    async calculatingVoucher(code: string, totalPrice: number, shippingPrice: number){
+        const voucherOrder= await this.getVoucherByCode(code);
+        let discountPrice;
+        if(voucherOrder.discount > 100){
+            // voucher discount 
+              console.log('discount money');
+              
+            if(voucherOrder.type === VoucherType.DISCOUNT) {
+                
+              // Bill has value min
+                 let min = voucherOrder.min === null? 0: voucherOrder.min;
+                  if(totalPrice >= min ){
+                      discountPrice =  voucherOrder.discount ;
+
+                    console.log('discount',discountPrice );
+                    
+                    
+                    totalPrice -= discountPrice;
+                    totalPrice < 0? 0: totalPrice;
+                    await this.decreaseVoucher(code)
+                    
+                  }
+                            
+                } ;
+            // voucher freeship
+              if(voucherOrder.type === VoucherType.FREESHIP){
+                console.log('fs');
+                
+                let min = voucherOrder.min === null? 0: voucherOrder.min;
+                if(totalPrice >= min ){
+                    discountPrice =  voucherOrder.discount
+                    shippingPrice -= discountPrice;
+                    shippingPrice<0 ? 0:shippingPrice;
+                    await this.decreaseVoucher(code)
+    
+                }
+              }
+        }else{
+              if(voucherOrder.type === VoucherType.DISCOUNT) {
+        
+                // Bill has value min
+      
+                    let min = voucherOrder.min === null? 0: voucherOrder.min;
+                    if(totalPrice >= min ){
+                      if(voucherOrder.max === null){
+                        discountPrice = (totalPrice * (voucherOrder.discount) /100) ;
+                      }else{
+                        discountPrice = (totalPrice * (voucherOrder.discount) /100) >= voucherOrder.max ? voucherOrder.max : (totalPrice * (voucherOrder.discount) /100) 
+                      }
+                      
+                      totalPrice -= discountPrice;
+                      totalPrice < 0? 0: totalPrice;
+                    await this.decreaseVoucher(code)
+    
+                      
+                    }
+                              
+                  } ;
+              // voucher freeship
+              if(voucherOrder.type === VoucherType.FREESHIP){
+                  let min = voucherOrder.min === null? 0: voucherOrder.min;
+                  if(totalPrice >= min ){
+                    if(voucherOrder.max === null){
+                      discountPrice =  (shippingPrice*(voucherOrder.discount) /100) ;
+                    }else{
+                      discountPrice =  (shippingPrice*(voucherOrder.discount) /100) >= voucherOrder.max ? voucherOrder.max : (shippingPrice*(voucherOrder.discount) /100)
+                    }
+                    shippingPrice -= discountPrice;
+                    shippingPrice<0 ? 0:shippingPrice;
+                    await this.decreaseVoucher(code)
+    
+        
+                  }
+                }
+        }  
+            return {totalPrice, shippingPrice}          
+
+
     }
 }

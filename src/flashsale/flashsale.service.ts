@@ -26,6 +26,7 @@ export class FlashsaleService {
         const flashsale= await this.FlashsaleRepository.create({
             name,
             description, 
+            isSendMail:false,
             startSale, 
             endSale,
             createdAt: currentDate
@@ -35,17 +36,20 @@ export class FlashsaleService {
         for(let i=0; i< itemFlashsale.length; i++){
             // Check quantity item flashsale < quantity item
             let itemFound= await this.itemsService.getItemById(itemFlashsale[i].itemsId)
+            console.log('found', itemFound);
+            
             if(itemFlashsale[i].quantity > itemFound.quantity){
                 throw new BadRequestException('Quantity of flashsale must be less or equal quantity of item')
             }
 
-            const item = await this.ItemFlashsaleRepository.create({
+            const itemSale = await this.ItemFlashsaleRepository.create({
                 flashsale,
                 quantity: itemFlashsale[i].quantity,
                 discount: itemFlashsale[i].discount,
                 itemsId: itemFlashsale[i].itemsId
             })
-            await item.save()
+            await this.itemsService.decreaseQuantityItems(itemFlashsale[i].itemsId, itemFlashsale[i].quantity )
+            await itemSale.save();
         }
         return flashsale;
     }
@@ -127,6 +131,12 @@ export class FlashsaleService {
                                                     .where('flashsale.startSale <= :alarmDate and flashsale.startSale <= :currentDate ',{alarmDate, currentDate})
                                                     .getMany();
         return await query;
+    }
+    async updateSendMail(flashsaleId: string){
+        const flashsale = await this.FlashsaleRepository.findOne({id: flashsaleId});
+        flashsale.isSendMail = true;
+        await flashsale.save();
+
     }
 
     

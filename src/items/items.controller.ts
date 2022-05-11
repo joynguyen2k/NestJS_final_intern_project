@@ -11,13 +11,16 @@ import { GetItemDto } from './dtos/get-items.dto';
 import { Roles } from 'src/auth/decorators/role.decorator';
 import { Role } from 'src/user/role.enum';
 import { AuthGuard } from '@nestjs/passport';
-
+import { ApiTags } from '@nestjs/swagger';
+import { Public } from 'src/auth/decorators/public.decorator';
+import * as moment from 'moment';
 @Controller('items')
+@ApiTags('Items')
+
 export class ItemsController {
     constructor(
         private itemsService: ItemsService
     ){}
-    @UseGuards(AuthGuard())
     @Roles(Role.ADMIN, Role.SUPERADMIN)
     @Post()
 
@@ -73,15 +76,25 @@ export class ItemsController {
     async deleteImage(@Param('id') id:string){
       return this.itemsService.deleteItemsImage(id)
     }
+    @Public()
+    @Get('/during')
+    async updateItemDuringFlashsale( time: string){
+      const currentDate = moment().format();
+      return await this.itemsService.updateItemDuringFlashsale(currentDate)
+    }
+
+    @Public()
     @Get(':id')
     async getItemById(@Param('id') id:string){
       return await this.itemsService.getItemById(id)
     }
+
     @Get('/flashsale/:id')
     async getItemsByFlashsale(@Param('id') id:string){
       // return await this.itemsService.getItemsByFlashsaleid(id)
-      return await this.itemsService.getItemsByFlashsale(id)
+      return await this.itemsService.getItemByFlashsale(id)
     }
+    @Public()
     @Get()
     @FormDataRequest()
     async getItems(@Body() getItemsDto: GetItemDto){
@@ -104,6 +117,7 @@ export class ItemsController {
       
         // return await this.addItemsImage(id,file.path)
     }
+
 
 }
 

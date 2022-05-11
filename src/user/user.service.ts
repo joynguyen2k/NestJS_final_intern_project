@@ -48,7 +48,7 @@ export class UserService {
             const userCreated = await this.UserRepository.create({
                 ...createUserDto,
                 password: hashedPassword,
-                role,
+                role: Role.USER,
                 verify: false,
                 verifyCode: verifyCode,
                 avatar: file.path,
@@ -139,7 +139,7 @@ export class UserService {
         if(user && (await bcrypt.compare( password,user.password))){
             const payload: UserPayload = {username: user.username};
             const accessToken = await this.jwtService.sign(payload);
-            await this.mailService.sendUserConfirmation(user, accessToken)
+            // await this.mailService.sendUserConfirmation(user, accessToken)
             return {accessToken};
         }else{
             throw new UnauthorizedException('Please check your login credentials')
