@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { diskStorage } from 'multer';
 import { FormDataRequest } from 'nestjs-form-data';
 import { GetUser } from 'src/auth/decorators/get-user.decorator';
@@ -39,7 +39,8 @@ export class UserController {
     }
     @Public()
     @Post('/signin')
-    // @FormDataRequest()
+    @ApiConsumes('multipart/form-data')
+    @FormDataRequest()
     async signIn(@Body() signInDto: SignInDto){
         return await this.userService.signIn(signInDto)
     }

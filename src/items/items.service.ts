@@ -171,7 +171,7 @@ export class ItemsService {
     }
     async getItemOrder(itemsId: string){
         const currentDate = moment().utcOffset('0').format()
-        let result= await this.ItemsRepository.createQueryBuilder('items')
+        let item= await this.ItemsRepository.createQueryBuilder('items')
                                                 .innerJoinAndSelect('items.itemFlashsale','item_flashsale')
                                                 .innerJoin('item_flashsale.flashsale', 'flashsale')
                                                 .where(`items.id = '${itemsId}'`)
@@ -181,9 +181,8 @@ export class ItemsService {
                                                 .andWhere('flashsale.endSale >= :currentDate ',{currentDate})
                                                 .orderBy('item_flashsale.discount','DESC')
                                                 // .limit(0)
-                                                // .execute()
+                                                .getOne();
         // item.itemFlashsale[0].quantity -= quantity;
-        let item: Items = await result.getOne();
 
         if(!item){
             console.log(111111111);
@@ -192,10 +191,8 @@ export class ItemsService {
             if(!item){
                 throw new NotFoundException(`Items ${itemsId} Not Found`);
             }
-            if(item.isSale ){
-                item.priceNew = item.price;
-                item.isSale = false;
-            }else item.isSale = true;
+                // item.priceNew = item.price;
+                // item.isSale = false;
             
         }
         // await this.ItemsRepository.save(item)

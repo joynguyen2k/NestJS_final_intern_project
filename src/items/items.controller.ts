@@ -91,6 +91,13 @@ export class ItemsController {
     }
 
     @Public()
+    @Get('/order/:id')
+    async getItemOrder(@Param('id') itemsId : string){
+      
+      return await this.itemsService.getItemOrder(itemsId)
+    }
+
+    @Public()
     @Get(':id')
     async getItemById(@Param('id') id:string){
       return await this.itemsService.getItemById(id)

@@ -29,7 +29,7 @@ import { JwtAuthGuard } from './auth/jwt.guard';
       database: 'NestJS_ecom_postgres',
       autoLoadEntities: true,
       synchronize: true,
-      // logging: true,
+      logging: true,
     }),
     CategoryModule,
     CategoryBannerModule,

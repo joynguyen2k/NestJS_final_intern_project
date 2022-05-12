@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import * as moment from 'moment';
 import { Repository } from 'typeorm';
 import { CreateVoucherDto } from './dtos/create-voucher.dto';
 import { GetVoucherDto } from './dtos/get-voucher.dto';
@@ -25,7 +26,19 @@ export class VoucherService {
         return await this.VoucherRepository.findOne({id})
     }
     async getVoucherByCode(code: string){
-        return await this.VoucherRepository.findOneOrFail({code})
+        console.log(code);
+        
+        const currentDate = moment().format();
+        const voucher = await this.VoucherRepository.createQueryBuilder('voucher')
+                                                    .where(`voucher.code = '${code}'`)
+                                                    .andWhere(`voucher.startVoucher <= '${currentDate}'`)
+                                                    .andWhere(`voucher.endVoucher >= '${currentDate}'`)
+                                                    .andWhere(`voucher.quantity > 0`)
+                                                    .getOne();
+        console.log(voucher);
+        
+                                                    
+        return voucher;
     }
     async getVoucher(getVoucherDto: GetVoucherDto){
         const {keyword, order, by, size, page}= getVoucherDto;

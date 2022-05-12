@@ -28,7 +28,6 @@ export class OrderService {
     ){}
     async createOrder(createOrderDto: CreateOrderDto, user: User){
       const {code, address, itemOrder}= createOrderDto;
-      console.log('item', itemOrder);
       
       const currentDate = moment().format();
       
@@ -43,7 +42,6 @@ export class OrderService {
 
 
       // Insert into order detail
-      console.log(itemOrder);
       
       for(let i =0; i< itemOrder.length; i++){
         // let item= await this.itemsService.getItemByFlashsale(itemOrder[i].itemsId);
@@ -66,11 +64,8 @@ export class OrderService {
         // }
         let item = await this.itemsService.getItemOrder(itemOrder[i].itemsId);
         if(item &&item.itemFlashsale && item.itemFlashsale[0].quantity >=  itemOrder[i].quantity){
-          console.log(78909123);
-          console.log('fs',item.itemFlashsale[0].id);
           await this.flashsaleService.decreaseQuantityFlashsale(item.itemFlashsale[0].id, item.id, itemOrder[i].quantity )
         }else if(item && item.quantity >=  itemOrder[i].quantity){
-          console.log(99999999);
           await this.itemsService.decreaseQuantityItems(itemOrder[i].itemsId,itemOrder[i].quantity )
         }else{
           throw new BadRequestException('Quantity is not enough to order')
@@ -83,7 +78,6 @@ export class OrderService {
         itemList.push(item);        
       }
 
-      console.log('item', itemList);
       
       // Shipping Price
       if(sumWeight < 1) shippingPrice = 20000
@@ -93,10 +87,10 @@ export class OrderService {
       let totalPriceVoucher: number = totalPrice;
       let shippingPriceVoucher :number = shippingPrice;
       // Get voucher
-      let voucherOrder= await this.voucherService.getVoucherByCode(code);
       if(code){
+        let voucherOrder= await this.voucherService.getVoucherByCode(code);
         // Use voucher
-        if(!voucherOrder) throw new NotFoundException(`Wrong code. Please check again`);
+        if(!voucherOrder) throw new NotFoundException(`Wrong code or voucher's quantity not enough. Please check again`);
         if(voucherOrder.quantity <=0) throw new BadRequestException(`Code ${code} out of quantity`);
         // Discount total money
         if(voucherOrder.discount > 100){
@@ -120,7 +114,6 @@ export class OrderService {
               } ;
           // voucher freeship
             if(voucherOrder.type === VoucherType.FREESHIP){
-              console.log('fs');
               
               let min = voucherOrder.min === null? 0: voucherOrder.min;
               if(totalPrice >= min ){
@@ -169,7 +162,6 @@ export class OrderService {
                 }
               }
       }  
-        console.log('total', totalPrice);
         const order = await this.OrderRepository.create({
           voucher: voucherOrder,
           addressShippingId: address,
@@ -200,6 +192,7 @@ export class OrderService {
       // Create order
   
       }
+
       const order = await this.OrderRepository.create({
         
         addressShippingId: address,
@@ -282,7 +275,6 @@ export class OrderService {
       return allOrder;
     }
     async updateStatusOrder(id: string,updateStatusOrderDto: UpdateStatusOrderDto){
-      console.log('11111111', id);
       
       const {status}= updateStatusOrderDto;
       const order = await this.OrderRepository.findOneOrFail(id)
