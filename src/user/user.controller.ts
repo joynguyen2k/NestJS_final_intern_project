@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiConsumes, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { diskStorage } from 'multer';
 import { FormDataRequest } from 'nestjs-form-data';
 import { GetUser } from 'src/auth/decorators/get-user.decorator';
@@ -10,6 +10,7 @@ import { Roles } from 'src/auth/decorators/role.decorator';
 import { editFileName, imageFileFilter } from 'src/ultils/file-uploading';
 import { CreateAddressDto } from './dtos/create-address.dto';
 import { CreateUserDto } from './dtos/create-user..dto';
+import { EditMyProfileDto } from './dtos/edit-user.dto';
 import { ForgotPasswordDto } from './dtos/forgot-password.dto';
 import { GetUserDto } from './dtos/get-user.dto';
 import { SignInDto } from './dtos/signin.dto';
@@ -20,12 +21,14 @@ import { UserService } from './user.service';
 
 @Controller('user')
 @ApiTags('User')
+@ApiBearerAuth()
 
 export class UserController {
     constructor(
         private userService: UserService
     ){}
     @Public()
+    @ApiConsumes('multipart/form-data')
     @Post('/signup')
     @UseInterceptors(FileInterceptor('avatar',{
             storage: diskStorage({
@@ -45,11 +48,12 @@ export class UserController {
         return await this.userService.signIn(signInDto)
     }
 
-    @Roles(Role.SUPERADMIN, Role.ADMIN)
+    @Roles(Role.SUPERADMIN)
     @Delete(':id')
     async deleteAccount(@Param('id') id:string ){
         return await this.userService.deleteAccount(id)
     }
+    @ApiConsumes('multipart/form-data')
     @Post('address')
     @FormDataRequest()
     async createAddress(
@@ -82,6 +86,12 @@ export class UserController {
         
         return await this.userService.sendEmailForgot(email)
     }
+    @ApiConsumes('multipart/form-data')
+
+    @Patch('/profile')
+    async editMyProfile(@Body() editMyProfile: EditMyProfileDto, @GetUser() user: User){
+        return await this.userService.editProfile(editMyProfile, user)
+    }
     @Public()
     @Patch('/forgot')
     async forgotPassword(@Query() verifyUserDto: VerifyUserDto, @Body() forgotPasswordDto: ForgotPasswordDto){
@@ -92,6 +102,7 @@ export class UserController {
         return await this.userService.forgotPassword(verifyUserDto, forgotPasswordDto)
     }
     @Roles(Role.SUPERADMIN, Role.ADMIN)
+    @ApiConsumes('multipart/form-data')
     @Get()
     async getAllUser(@Body() getUserDto: GetUserDto){
         return await this.userService.getAllUser(getUserDto)

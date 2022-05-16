@@ -31,10 +31,14 @@ export class Items extends BaseEntity {
   status: ItemsStatus;
   @Column({nullable: true, default: false})
   isSale: Boolean;
+  @Column({nullable: true, default: false})
+  isDeleted: Boolean;
   @Column({type: 'timestamptz', nullable: true})
   createdAt: Date;
   @Column({type: 'timestamptz', nullable: true})
   updatedAt: Date;
+  @Column({type: 'timestamptz', nullable: true})
+  deletedAt: Date;
   @Column({nullable: true})
   categoryId: string;
   @ManyToOne(_type => Category, category => category.items)

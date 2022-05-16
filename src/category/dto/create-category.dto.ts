@@ -12,4 +12,6 @@ export class CreateCategoryDto{
     @ApiProperty({enum:CategoryStatus})
 
     status: CategoryStatus;
+    @ApiProperty({ type: 'array', items: { type: 'string', format: 'binary' } })
+    files: any;
 }

@@ -11,17 +11,18 @@ import { GetItemDto } from './dtos/get-items.dto';
 import { Roles } from 'src/auth/decorators/role.decorator';
 import { Role } from 'src/user/role.enum';
 import { AuthGuard } from '@nestjs/passport';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { Public } from 'src/auth/decorators/public.decorator';
 import * as moment from 'moment';
 @Controller('items')
 @ApiTags('Items')
-
+@ApiBearerAuth()
 export class ItemsController {
     constructor(
         private itemsService: ItemsService
     ){}
     @Roles(Role.ADMIN, Role.SUPERADMIN)
+    @ApiConsumes('multipart/form-data')
     @Post()
 
     // @FormDataRequest()
@@ -49,6 +50,8 @@ export class ItemsController {
             images: Array<Express.Multer.File>;
           },
         ){
+          console.log(createItemsDto);
+          
           console.log(files);
           
  
@@ -56,45 +59,21 @@ export class ItemsController {
         return this.itemsService.createItems(createItemsDto,files)
         
     }
-
+    @Roles(Role.ADMIN, Role.SUPERADMIN)
+    @ApiConsumes('multipart/form-data')
     @Patch(':id')
-  //   @UseInterceptors(FileInterceptor('file',{
-  //     storage: diskStorage({
-  //         destination: './uploads',
-  //         filename: (req, file, cb) => {
-  //             const filename: string = file.originalname;
-  //             cb(null, `${filename}`)
-  //         }
-  //     })
-  // }))
+   
     @FormDataRequest()
-    async updateItems(@Param('id') id: string, @Body() updateItemsDto: UpdateItemsDto, @UploadedFile() file){
-        return await this.itemsService.updateItems(id, updateItemsDto, file);
+    async updateItems(
+      @Param('id') id: string, 
+      @Body() updateItemsDto: UpdateItemsDto, 
+    ){
+        return await this.itemsService.updateItems(id, updateItemsDto);
     }
-
+    @Roles(Role.ADMIN, Role.SUPERADMIN)
     @Delete('/image/:id')
     async deleteImage(@Param('id') id:string){
       return this.itemsService.deleteItemsImage(id)
-    }
-    @Public()
-    @Get('/during')
-    async updateItemDuringFlashsale(){
-      const currentDate = moment().format();
-      return await this.itemsService.updateItemDuringFlashsale(currentDate)
-    }
-    @Public()
-    @Get('/after')
-    async updateItemAfterFlashsale(){
-      const currentDate = moment().format();
-      const time = moment().subtract(5, 'minutes').format();
-      return await this.itemsService.updateItemAfterFlashsale(time,currentDate)
-    }
-
-    @Public()
-    @Get('/order/:id')
-    async getItemOrder(@Param('id') itemsId : string){
-      
-      return await this.itemsService.getItemOrder(itemsId)
     }
 
     @Public()
@@ -110,18 +89,40 @@ export class ItemsController {
     }
     @Public()
     @Get()
+    @ApiConsumes('multipart/form-data')
     @FormDataRequest()
-    async getItems(@Body() getItemsDto: GetItemDto){
+
+    async getItems(@Param() getItemsDto: GetItemDto){
       return this.itemsService.getItems(getItemsDto)
     }
+    @Roles(Role.ADMIN, Role.SUPERADMIN)
     @Delete(':id')
     async deleteItems(@Param('id') id:string){
        return await this.itemsService.deleteItems(id)
     }
+
+    @Roles(Role.ADMIN, Role.SUPERADMIN)
     @Delete('/image/:id')
     async deleteItemsImage(@Param('id') id:string){
       return await this.itemsService.deleteItemsImage(id)
     }
+
+    @Roles(Role.ADMIN, Role.SUPERADMIN)
+    @ApiBody({
+      schema: {
+        type: 'object',
+        properties: {
+          files: {
+            type: 'array',
+            items: {
+              type: 'string',
+              format: 'binary',
+            },
+          },
+        },
+      },
+    })
+    @ApiConsumes('multipart/form-data')
     @Post('/image/:id')
     @UseInterceptors(FileInterceptor('file'))
     @FormDataRequest()
@@ -129,7 +130,7 @@ export class ItemsController {
       console.log(11111111);
       console.log(file);
       
-        // return await this.addItemsImage(id,file.path)
+        return await this.addItemsImage(id,file)
     }
 
 

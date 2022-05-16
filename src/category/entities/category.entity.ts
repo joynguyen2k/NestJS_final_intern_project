@@ -1,7 +1,7 @@
-import { CategoryBanner } from 'src/category-banner/entities/category-banner.entity';
 import { Items } from 'src/items/entities/items.entity';
 import { BaseEntity, Column, Entity, JoinColumn, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { CategoryStatus } from '../enums/category.enums';
+import { CategoryBanner } from './category-banner.entity';
 
 @Entity()
 export class Category extends BaseEntity {

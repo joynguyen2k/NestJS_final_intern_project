@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { query } from 'express';
 import * as moment from 'moment';
 import { lastValueFrom } from 'rxjs';
+import { FlashsaleService } from 'src/flashsale/flashsale.service';
 import { Repository } from 'typeorm';
 import { CreateItemsDto } from './dtos/create-items.dto';
 import { GetItemDto } from './dtos/get-items.dto';
@@ -18,7 +19,8 @@ export class ItemsService {
         private ItemsRepository: Repository<Items>,
 
         @InjectRepository(ItemsImage)
-        private ItemsImageRepository: Repository<ItemsImage>
+        private ItemsImageRepository: Repository<ItemsImage>,
+        // private flashsaleService: FlashsaleService,
     ){}
     async getItemById(id:string){
         const items= this.ItemsRepository.createQueryBuilder('items')
@@ -43,6 +45,8 @@ export class ItemsService {
     }
     async createItems(createItemsDto: CreateItemsDto,files:any){
         const {avatar, images}= files;
+        console.log(files);
+        
         const {price}= createItemsDto;
         const currentDate= moment().format()
         const items = await this.ItemsRepository.save({
@@ -50,6 +54,7 @@ export class ItemsService {
             status: ItemsStatus.ACTIVE,
             priceNew: price,
             isSale: false,
+            isDeleted: false,
             avatar: avatar[0].path,
             createdAt: currentDate
 
@@ -73,30 +78,34 @@ export class ItemsService {
 
 
     }
-    async updateItems(id:string, updateItemsDto: UpdateItemsDto, file: any){
+    async updateItems(id:string, updateItemsDto: UpdateItemsDto){
+        console.log(updateItemsDto);
+        
         const { name,
             barcode,
             importPrice,
             price,
             weight,
-            avatar,
             quantity,
             description,
-            updatedAt,
             status}= updateItemsDto;
-        const currentDate = moment().format()
+        const currentDate = new Date();
         const item= await this.getItemById(id);
-        console.log(item);
         
             item.name= name;
             item.barcode= barcode;
             item.importPrice= importPrice;
             item.price = price;
             item.weight = weight;
-            item.avatar = file;
             item.quantity= quantity;
             item.description= description;
-            // item.updatedAt= currentDate;
+            item.updatedAt= currentDate;
+            item.status = status;
+
+           
+        
+
+            
         
         return await this.ItemsRepository.save(item);
     }
@@ -135,21 +144,27 @@ export class ItemsService {
 
     }
     async deleteItems(id:string){
-        const query = this.ItemsRepository.createQueryBuilder();
-        const query2 = this.ItemsImageRepository.createQueryBuilder();
-        const items= this.ItemsRepository.findOne(id);
-        if(items){
-            await query2.delete()
-                        .where('itemsId= :id',{id})
-                        .execute()
-            await query.delete()
-                        .where('id= :id',{id})
-                        .execute()
-        }else{
-            throw new NotFoundException(`items with ${id} not found`)
+        const currentDate = new Date();
+        const item = await this.ItemsRepository.findOne({id});
+        const itemsOrder= await this.ItemsRepository.createQueryBuilder('items')
+                                        .innerJoin('items.orderDetail','order-detail')
+                                        .innerJoin('order-detail.order', 'order')
+                                        .where(`order.status IN ('WAITING','DELIVERING')`)
+                                        .andWhere(`items.id = '${id}'`)
+                                        .getOne();
+        console.log(itemsOrder);
+        
+        if(!item){
+            throw new NotFoundException(`Item with ID ${id} not found`);
         }
-        console.log(query.getSql());
-        console.log(query2.getSql());
+        if(itemsOrder){
+            throw new BadRequestException('Cannot delete this items');
+        }
+        item.isDeleted = true;
+        item.deletedAt = currentDate;
+        return await this.ItemsRepository.save(item);
+
+        
     }
     async getItemByFlashsale(itemsId:string){
         console.log('cúc cu');
@@ -249,7 +264,11 @@ export class ItemsService {
                 items[i].isSale = false;
                 items[i].priceNew = items[i].price;
                 items[i].quantity += items[i].itemFlashsale[0].quantity;
+                items[i].itemFlashsale[0].quantity = 0;
                 await this.ItemsRepository.save(items);
+                items[i].save();
+                items[i].itemFlashsale[0].save();
+                
             }
 
         }

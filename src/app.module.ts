@@ -3,7 +3,6 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CategoryModule } from './category/category.module';
-import { CategoryBannerModule } from './category-banner/category-banner.module';
 import { ItemsModule } from './items/items.module';
 import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
@@ -29,10 +28,9 @@ import { JwtAuthGuard } from './auth/jwt.guard';
       database: 'NestJS_ecom_postgres',
       autoLoadEntities: true,
       synchronize: true,
-      logging: true,
+      // logging: true,
     }),
     CategoryModule,
-    CategoryBannerModule,
     ItemsModule,
     UserModule,
     AuthModule,

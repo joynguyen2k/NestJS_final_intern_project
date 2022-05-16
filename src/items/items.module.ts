@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { ItemsService } from './items.service';
 import { ItemsController } from './items.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -15,6 +15,7 @@ import { PassportModule } from '@nestjs/passport';
 import { AuthModule } from 'src/auth/auth.module';
 import { UserModule } from 'src/user/user.module';
 import { FlashsaleModule } from 'src/flashsale/flashsale.module';
+import { FlashsaleService } from 'src/flashsale/flashsale.service';
 
 @Module({
   imports:[
@@ -24,18 +25,20 @@ import { FlashsaleModule } from 'src/flashsale/flashsale.module';
     NestjsFormDataModule,
     AuthModule,
     PassportModule.register({defaultStrategy:'jwt'}),
-    FlashsaleModule
+    // FlashsaleService,
+    // FlashsaleModule
 
     // MulterModule.register({dest:'./uploads',fileFilter: imageFileFilter, storage:diskStorage({filename: editFileName})})
 
   ],
   providers: [
     ItemsService,
+    // FlashsaleService,
+
     // {
     //   provide: APP_GUARD,
     //   useClass: RolesGuard,
     // },
-    
   ],
   controllers: [ItemsController],
   exports:[ItemsService]

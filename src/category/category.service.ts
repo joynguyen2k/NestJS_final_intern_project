@@ -1,7 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { CategoryRepository } from './category.repository';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { GetCategoryDto } from './dto/get-category.dto';
 import { Category } from './entities/category.entity';
@@ -31,15 +30,46 @@ export class CategoryService {
         for(let i = 0; i< files.length; i++){
             const categoryBanner = await this.CategoryBannerRepository.create({
                 position: i,
-                url: files[i],
+                url: files[i].path,
                 category
             })
             await this.CategoryBannerRepository.save(categoryBanner);
         }
         return category;   
      }
+     async findCategoryById(id: string){
+         const category = await this.CategoryRepository.findOne({id});
+         if(!category){
+             throw new NotFoundException(`Category with ${id} not found`)
+         }
+         return category;
+     }
+    async addCategoryBanner(categoryId: string, files: any){
+        const category = await this.CategoryRepository.findOne({id: categoryId});
+        console.log('ct', categoryId);
+        
+        let count = await this.CategoryBannerRepository.count({category});
+        console.log('count', count);
+        
+        for(let i =0; i< files.length; i++){
+            console.log(111111111,files[i].path);
+            
+            const categoryBanner = await this.CategoryBannerRepository.create({
+                url: files[i].path,
+                position: count + 1,
+                category: category
+            });
+            count++
+            await categoryBanner.save();
+        }
+    } 
     async getCategoryById(id: string): Promise<Category>{
-        return this.CategoryRepository.findOne({where:id})
+        const category = await this.CategoryRepository.createQueryBuilder('category')
+                                                        .leftJoinAndSelect('category.categoryBanner','category_banner')
+                                                        .where('category.id = ${id}')
+                                                        .orderBy('category_banner.position','ASC')
+                                                        .getOne()
+        return category;
     }
     async getCategory(getCategoryDto: GetCategoryDto):Promise<Category[]>{
         const {keyword, order, by, size, page}= getCategoryDto;
@@ -101,5 +131,35 @@ export class CategoryService {
         }
         console.log(query.getSql());
         console.log(query2.getSql());
+    }
+    async deleteBanner(id: string){
+        let category = await this.CategoryBannerRepository.createQueryBuilder('category-banner')
+                                                            .select(['category-banner.categoryId'])
+                                                            .where(`category-banner.id = '${id}'`)
+                                                            .getOne();
+        
+         console.log('cat1', category);
+
+        const result=await this.CategoryBannerRepository.delete(id);
+        if (result.affected === 0) {
+          throw new NotFoundException(`Banner with ID "${id}" not found`);
+        }    
+        let categoryBannerRest = await this.CategoryBannerRepository.createQueryBuilder('category-banner')
+                                                                    .where(`category-banner.categoryId = '${category.categoryId}'`)
+                                                                    .getMany();
+        console.log('cat2', categoryBannerRest.length);
+        
+        
+        for(let i =0; i < categoryBannerRest.length; i++){
+            let categoryBanner = await this.CategoryBannerRepository.create({
+                id: categoryBannerRest[i].id,
+                position: i+1,
+                url: categoryBannerRest[i].url
+            })
+            await categoryBanner.save()
+        }
+    }
+    async changePositionBanner(){
+        
     }
 }

@@ -138,16 +138,23 @@ export class FlashsaleService {
         await flashsale.save();
 
     }
-    async decreaseQuantityFlashsale(itemFlashsaleId: string, itemsId: string, quantity: number){
+    async updateQuantityFlashsale(itemFlashsaleId: string, itemsId: string, quantity: number){
         const item = await this.ItemFlashsaleRepository.createQueryBuilder('itemFlashsale')
                                                         .leftJoinAndSelect('itemFlashsale.items','items')
                                                         .where(`itemFlashsale.id ='${itemFlashsaleId}'`)
                                                         .andWhere(`itemFlashsale.itemsId = '${itemsId}'`)
                                                         .getOne();
         item.quantity -= quantity;
+        item.quantitySale += quantity;
         await this.ItemFlashsaleRepository.save(item);
 
         
+    }
+    async updateQuantityAfterFlashsale(id: string){
+        const itemFlashsale = await this.ItemFlashsaleRepository.findOneOrFail({id});
+        itemFlashsale.quantity =0;
+        await this.ItemFlashsaleRepository.save(itemFlashsale)
+
     }
 
     

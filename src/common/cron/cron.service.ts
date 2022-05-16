@@ -16,7 +16,7 @@ export class CronService {
         private schedulerRegistry: SchedulerRegistry,
         private itemsService: ItemsService
     ){}
-    @Cron('00 * * * *')
+    @Cron('52 * * * *')
     async sendMailFlashsale() {
         console.log(111111111);
         

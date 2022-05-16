@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as moment from 'moment';
 import { Repository } from 'typeorm';
@@ -106,80 +106,88 @@ export class VoucherService {
     }
     async calculatingVoucher(code: string, totalPrice: number, shippingPrice: number){
         const voucherOrder= await this.getVoucherByCode(code);
+        const currentDate = moment().format();
+        let totalPriceVoucher;
+        let shippingPriceVoucher
         let discountPrice;
-        if(voucherOrder.discount > 100){
-            // voucher discount 
-              console.log('discount money');
-              
-            if(voucherOrder.type === VoucherType.DISCOUNT) {
+            // Use voucher
+            if(!voucherOrder) throw new NotFoundException(`Wrong code or voucher's quantity not enough. Please check again`);
+            if(voucherOrder.quantity <=0) throw new BadRequestException(`Code ${code} out of quantity`);
+            // Discount total money
+            if(voucherOrder.discount > 100){
+              // voucher discount 
                 
-              // Bill has value min
-                 let min = voucherOrder.min === null? 0: voucherOrder.min;
-                  if(totalPrice >= min ){
-                      discountPrice =  voucherOrder.discount ;
-
-                    console.log('discount',discountPrice );
-                    
-                    
-                    totalPrice -= discountPrice;
-                    totalPrice < 0? 0: totalPrice;
-                    await this.decreaseVoucher(code)
-                    
-                  }
-                            
-                } ;
-            // voucher freeship
-              if(voucherOrder.type === VoucherType.FREESHIP){
-                console.log('fs');
-                
-                let min = voucherOrder.min === null? 0: voucherOrder.min;
-                if(totalPrice >= min ){
-                    discountPrice =  voucherOrder.discount
-                    shippingPrice -= discountPrice;
-                    shippingPrice<0 ? 0:shippingPrice;
-                    await this.decreaseVoucher(code)
-    
-                }
-              }
-        }else{
               if(voucherOrder.type === VoucherType.DISCOUNT) {
-        
+                  
                 // Bill has value min
-      
-                    let min = voucherOrder.min === null? 0: voucherOrder.min;
+                   let min = voucherOrder.min === null? 0: voucherOrder.min;
                     if(totalPrice >= min ){
-                      if(voucherOrder.max === null){
-                        discountPrice = (totalPrice * (voucherOrder.discount) /100) ;
-                      }else{
-                        discountPrice = (totalPrice * (voucherOrder.discount) /100) >= voucherOrder.max ? voucherOrder.max : (totalPrice * (voucherOrder.discount) /100) 
-                      }
-                      
-                      totalPrice -= discountPrice;
-                      totalPrice < 0? 0: totalPrice;
-                    await this.decreaseVoucher(code)
+                        discountPrice =  voucherOrder.discount ;
     
+                      
+                      
+                      totalPriceVoucher = totalPrice -  discountPrice;
+                      totalPriceVoucher < 0? 0: totalPriceVoucher;
+                      await this.decreaseVoucher(code)
                       
                     }
                               
                   } ;
               // voucher freeship
-              if(voucherOrder.type === VoucherType.FREESHIP){
+                if(voucherOrder.type === VoucherType.FREESHIP){
+                  
                   let min = voucherOrder.min === null? 0: voucherOrder.min;
                   if(totalPrice >= min ){
-                    if(voucherOrder.max === null){
-                      discountPrice =  (shippingPrice*(voucherOrder.discount) /100) ;
-                    }else{
-                      discountPrice =  (shippingPrice*(voucherOrder.discount) /100) >= voucherOrder.max ? voucherOrder.max : (shippingPrice*(voucherOrder.discount) /100)
-                    }
-                    shippingPrice -= discountPrice;
-                    shippingPrice<0 ? 0:shippingPrice;
-                    await this.decreaseVoucher(code)
-    
-        
+                      discountPrice =  voucherOrder.discount
+                      shippingPriceVoucher = shippingPrice - discountPrice;
+                      shippingPriceVoucher <0 ? 0:shippingPriceVoucher;
+                      await this.decreaseVoucher(code)
+      
                   }
                 }
-        }  
-            return {totalPrice, shippingPrice}          
+          }else{
+                if(voucherOrder.type === VoucherType.DISCOUNT) {
+          
+                  // Bill has value min
+        
+                      let min = voucherOrder.min === null? 0: voucherOrder.min;
+                      if(totalPrice >= min ){
+                        if(voucherOrder.max === null){
+                          discountPrice = (totalPrice * (voucherOrder.discount) /100) ;
+                        }else{
+                          discountPrice = (totalPrice * (voucherOrder.discount) /100) >= voucherOrder.max ? voucherOrder.max : (totalPrice * (voucherOrder.discount) /100) 
+                        }
+                        
+                        totalPriceVoucher = totalPrice - discountPrice;
+                        totalPriceVoucher < 0? 0: totalPriceVoucher;
+                      await this.decreaseVoucher(code)
+      
+                        
+                      }
+                                
+                    } ;
+                // voucher freeship
+                if(voucherOrder.type === VoucherType.FREESHIP){
+                    let min = voucherOrder.min === null? 0: voucherOrder.min;
+                    if(totalPrice >= min ){
+                      if(voucherOrder.max === null){
+                        discountPrice =  (shippingPrice*(voucherOrder.discount) /100) ;
+                      }else{
+                        discountPrice =  (shippingPrice*(voucherOrder.discount) /100) >= voucherOrder.max ? voucherOrder.max : (shippingPrice*(voucherOrder.discount) /100)
+                      }
+                      shippingPriceVoucher  = shippingPrice - discountPrice;
+                      shippingPriceVoucher <0 ? 0:shippingPriceVoucher ;
+                      await this.decreaseVoucher(code)
+      
+          
+                    }
+                  }
+          }  
+           
+      
+      
+          
+         
 
 
     }

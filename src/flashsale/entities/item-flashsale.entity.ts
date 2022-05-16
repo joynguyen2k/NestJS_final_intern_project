@@ -11,6 +11,8 @@ export class ItemFlashsale extends BaseEntity{
     quantity: number;
     @Column({nullable: true})
     discount: number;
+    @Column({nullable: true, default:0})
+    quantitySale: number;
     @Column({nullable: true})
     itemsId: string;
     @ManyToOne(_type => Flashsale, flashsale => flashsale.itemFlashsale)

@@ -34,37 +34,16 @@ export class OrderService {
       let sumWeight = 0;
       let totalPrice = 0;
       let shippingPrice=0 ;
-
-
-
       let discountPrice =0;
       let itemList=[];
-
 
       // Insert into order detail
       
       for(let i =0; i< itemOrder.length; i++){
-        // let item= await this.itemsService.getItemByFlashsale(itemOrder[i].itemsId);
-        // // If item of flashsale exist and quantity >0
-        // if(item && item.itemFlashsale[0].quantity > 0   ){
-        //   console.log('abc');
-          
-        //   item.itemFlashsale[0].quantity -= itemOrder[i].quantity;
-        //   // item.itemFlashsale[0].save();
-        // }else{
-        //   console.log('xyz');
-          
-        //   item = await this.itemsService.getItemById(itemOrder[i].itemsId);
-        //   item.priceNew = item.price;
-        // }
-        // // If item flashsale not exist
-        // if(!item){
-        //   item = await this.itemsService.getItemById(itemOrder[i].itemsId)
-
-        // }
+  
         let item = await this.itemsService.getItemOrder(itemOrder[i].itemsId);
         if(item &&item.itemFlashsale && item.itemFlashsale[0].quantity >=  itemOrder[i].quantity){
-          await this.flashsaleService.decreaseQuantityFlashsale(item.itemFlashsale[0].id, item.id, itemOrder[i].quantity )
+          await this.flashsaleService.updateQuantityFlashsale(item.itemFlashsale[0].id, item.id, itemOrder[i].quantity )
         }else if(item && item.quantity >=  itemOrder[i].quantity){
           await this.itemsService.decreaseQuantityItems(itemOrder[i].itemsId,itemOrder[i].quantity )
         }else{
@@ -94,23 +73,16 @@ export class OrderService {
         if(voucherOrder.quantity <=0) throw new BadRequestException(`Code ${code} out of quantity`);
         // Discount total money
         if(voucherOrder.discount > 100){
-          // voucher discount 
-            
-          if(voucherOrder.type === VoucherType.DISCOUNT) {
-              
+          // voucher discount        
+          if(voucherOrder.type === VoucherType.DISCOUNT) { 
             // Bill has value min
                let min = voucherOrder.min === null? 0: voucherOrder.min;
                 if(totalPrice >= min ){
-                    discountPrice =  voucherOrder.discount ;
-
-                  
-                  
+                  discountPrice =  voucherOrder.discount ;           
                   totalPriceVoucher = totalPrice -  discountPrice;
                   totalPriceVoucher < 0? 0: totalPriceVoucher;
-                  await this.voucherService.decreaseVoucher(code)
-                  
-                }
-                          
+                  await this.voucherService.decreaseVoucher(code)      
+                }            
               } ;
           // voucher freeship
             if(voucherOrder.type === VoucherType.FREESHIP){
@@ -139,7 +111,7 @@ export class OrderService {
                     
                     totalPriceVoucher = totalPrice - discountPrice;
                     totalPriceVoucher < 0? 0: totalPriceVoucher;
-                  await this.voucherService.decreaseVoucher(code)
+                    await this.voucherService.decreaseVoucher(code)
   
                     
                   }
@@ -187,14 +159,12 @@ export class OrderService {
           })
           await orderDetail.save()
         }
-        return await order;
+        return order;
   
       // Create order
   
       }
-
       const order = await this.OrderRepository.create({
-        
         addressShippingId: address,
         status: OrderStatus.WAITING,
         user,
@@ -204,30 +174,24 @@ export class OrderService {
         createdAt: currentDate
       })
       await order.save()
+      console.log('list', itemList);
       
       for(let i =0; i < itemList.length; i++){
-                
+        console.log('fl',itemList[i]);  
         const orderDetail = await this.OrderDetailRepository.create({
           quantity: itemList[i].quantity,
           price: itemList[i].priceNew,
           items: itemList[i],
-          itemFlashsale: itemList[i].itemFlashsale[i],
+          itemFlashsale: itemList[i].itemFlashsale[0],
           createdAt: currentDate,
           order: order
         })
         await orderDetail.save()
       }
       return await order;
-
-      
-      
-    
-    
-    
-    
   }
     async getOrderByUser( getOrderDto: GetOrderDto, user: User){
-      const { order, by, size, page, status}= getOrderDto;
+      const { order, by, size, page}= getOrderDto;
       const query = await this.OrderRepository.createQueryBuilder('order')
                                               .leftJoinAndSelect('order.orderDetail','order_detail')
                                               .leftJoinAndSelect('order.addressShipping','address_shipping')
@@ -235,7 +199,7 @@ export class OrderService {
                                               .leftJoinAndSelect('order_detail.itemFlashsale','item_flashsale')
                                               .innerJoinAndSelect('order.user', 'user')
                                               .where('order.userId = :userId',{userId:user.id})
-                                              .andWhere('order.status = :status',{status})
+                                              // .andWhere('order.status = :status',{status})
       if(order){
           if(by==='DESC') query.orderBy(`order.${order}`, 'DESC')
           else query.orderBy(`order.${order}`)

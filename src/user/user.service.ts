@@ -17,6 +17,7 @@ import { MailerService } from '@nestjs-modules/mailer';
 import { MailService } from 'src/common/mail/mail.service';
 import { VerifyUserDto } from './dtos/verify-user.dto';
 import { ForgotPasswordDto } from './dtos/forgot-password.dto';
+import { EditMyProfileDto } from './dtos/edit-user.dto';
 
 @Injectable()
 export class UserService {
@@ -35,7 +36,7 @@ export class UserService {
     }
 
     async signUp(createUserDto: CreateUserDto, file: any ){
-        const {name, username, phone, email, password, dateOfBirth, avatar, role, verify, createdAt}= createUserDto;
+        const {name, username, phone, email, password, dateOfBirth, avatar}= createUserDto;
         const salt = await bcrypt.genSalt();
         const hashedPassword = await bcrypt.hash(password, salt)//, salt);
         const verifyCode= uuid();
@@ -115,11 +116,13 @@ export class UserService {
         
         const newVerifyCode = uuid();
 
-        const currentDate = moment().format();
+        const currentDate = new Date();
         if(!user){
-            throw new NotFoundException(`User: ${email} not found`)
+            throw new NotFoundException(`User with ${email} not found`)
         }
         user.verifyCode = newVerifyCode;
+        user.updatedAt = currentDate;
+
         await user.save();        
         const url = process.env.HOST + `/user/forgot/?email=${user.email}&verifyCode=${user.verifyCode}`
         const result = await this.mailService.sendEmailForgotPassword(url, email);
@@ -206,6 +209,20 @@ export class UserService {
         let emailList =[];
         await emails.map((e)=> emailList.push(e.email));
         return await emailList;
+    }
+    async editProfile(editMyProfileDto: EditMyProfileDto, user: User){
+        const {name, phone, email, password, dateOfBirth, avatar } = editMyProfileDto;
+        const salt = await bcrypt.genSalt();
+        const hashedPassword = await bcrypt.hash(password, salt)
+
+        user.name = name;
+        user.phone= phone;
+        user.email = email;
+        user.password = hashedPassword;
+        user.dateOfBirth = dateOfBirth;
+        user.avatar = avatar;
+        return await user.save()
+        
     }
 
 
