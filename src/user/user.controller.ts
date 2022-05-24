@@ -27,6 +27,7 @@ export class UserController {
     constructor(
         private userService: UserService
     ){}
+//Sign up user && account
     @Public()
     @ApiConsumes('multipart/form-data')
     @Post('/signup')
@@ -37,9 +38,19 @@ export class UserController {
             }), 
             fileFilter:imageFileFilter
     }))
-    async signUp(@Body() createUserDto: CreateUserDto, @UploadedFile() file: Express.Multer.File){
+    async signUp(
+                @Body() createUserDto: CreateUserDto, 
+                @UploadedFile() file: Express.Multer.File
+        ){
         return await this.userService.signUp(createUserDto,file)
     }
+    // Verify user by sign up
+    @Public()
+    @Get('/signup/verify')
+    async verifiedUser(@Query() verifyUserDto: VerifyUserDto ){
+        return await this.userService.verifiedUser(verifyUserDto)
+    }
+
     @Public()
     @Post('/signin')
     @ApiConsumes('multipart/form-data')
@@ -48,11 +59,12 @@ export class UserController {
         return await this.userService.signIn(signInDto)
     }
 
-    @Roles(Role.SUPERADMIN)
+    @Roles(Role.SUPERADMIN, Role.ADMIN)
     @Delete(':id')
-    async deleteAccount(@Param('id') id:string ){
-        return await this.userService.deleteAccount(id)
+    async deleteAccount(@Param('id') id:string, @GetUser() user: User ){
+        return await this.userService.deleteAccount(id, user)
     }
+
     @ApiConsumes('multipart/form-data')
     @Post('address')
     @FormDataRequest()
@@ -67,40 +79,32 @@ export class UserController {
     async getAdressByUser(@GetUser() user: User){
         return await this.userService.getAdressByUser(user)
     }
-    @Get('email')
-    async getAllMail(){
-        return await this.userService.getAllMail()
-    }
-    @Public()
-    @Get('/signup/verify')
-    async verifiedUser(@Query() verifyUserDto: VerifyUserDto ){
-        console.log(verifyUserDto);
-        
-        return await this.userService.verifiedUser(verifyUserDto)
 
-    }
+
     @Public()
     @Get('/send_mail_forgot')
     async sendMailForgot(@Query('email') email: string ){
-        console.log(email);
-        
         return await this.userService.sendEmailForgot(email)
-    }
-    @ApiConsumes('multipart/form-data')
-
-    @Patch('/profile')
-    async editMyProfile(@Body() editMyProfile: EditMyProfileDto, @GetUser() user: User){
-        return await this.userService.editProfile(editMyProfile, user)
     }
     @Public()
     @Patch('/forgot')
     async forgotPassword(@Query() verifyUserDto: VerifyUserDto, @Body() forgotPasswordDto: ForgotPasswordDto){
-        console.log('verify', verifyUserDto);
-        console.log('pass', forgotPasswordDto);
-        
-        
         return await this.userService.forgotPassword(verifyUserDto, forgotPasswordDto)
     }
+
+    @ApiConsumes('multipart/form-data')
+    @Patch('/profile')
+    @UseInterceptors(FileInterceptor('avatar',{
+        storage: diskStorage({
+          destination: './uploads',
+          filename: editFileName,
+        }), 
+        fileFilter:imageFileFilter
+    }))
+    async editMyProfile(@Body() editMyProfile: EditMyProfileDto, @GetUser() user: User, @UploadedFile() file){
+        return await this.userService.editProfile(editMyProfile, user, file)
+    }
+    
     @Roles(Role.SUPERADMIN, Role.ADMIN)
     @ApiConsumes('multipart/form-data')
     @Get()

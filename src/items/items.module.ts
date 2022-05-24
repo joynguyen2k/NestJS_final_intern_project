@@ -16,6 +16,7 @@ import { AuthModule } from 'src/auth/auth.module';
 import { UserModule } from 'src/user/user.module';
 import { FlashsaleModule } from 'src/flashsale/flashsale.module';
 import { FlashsaleService } from 'src/flashsale/flashsale.service';
+import { CloudinaryModule } from 'src/common/cloudinary/cloudinary.module';
 
 @Module({
   imports:[
@@ -25,10 +26,11 @@ import { FlashsaleService } from 'src/flashsale/flashsale.service';
     NestjsFormDataModule,
     AuthModule,
     PassportModule.register({defaultStrategy:'jwt'}),
-    // FlashsaleService,
-    // FlashsaleModule
-
-    // MulterModule.register({dest:'./uploads',fileFilter: imageFileFilter, storage:diskStorage({filename: editFileName})})
+    CloudinaryModule,
+    MulterModule.register({
+      dest: './uploads/',
+      fileFilter: imageFileFilter,
+    }),  
 
   ],
   providers: [

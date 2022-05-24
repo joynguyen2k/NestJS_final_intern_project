@@ -21,8 +21,7 @@ export class FlashsaleService {
     async createFlashsale(createFlashsaleDto: CreateFlashsaleDto){
         const{name, description, startSale, endSale, itemFlashsale}= createFlashsaleDto;
         const currentDate= moment().format()
-        console.log('1',createFlashsaleDto);
-        
+
         const flashsale= await this.FlashsaleRepository.create({
             name,
             description, 
@@ -36,7 +35,6 @@ export class FlashsaleService {
         for(let i=0; i< itemFlashsale.length; i++){
             // Check quantity item flashsale < quantity item
             let itemFound= await this.itemsService.getItemById(itemFlashsale[i].itemsId)
-            console.log('found', itemFound);
             
             if(itemFlashsale[i].quantity > itemFound.quantity){
                 throw new BadRequestException('Quantity of flashsale must be less or equal quantity of item')
@@ -80,8 +78,6 @@ export class FlashsaleService {
         }else{
             throw new NotFoundException(`items with ${id} not found`)
         }
-        console.log(query.getSql());
-        console.log(query2.getSql());
     }
     async deleteItemsFlashsale(id:string){
         const result= await this.ItemFlashsaleRepository.delete({id})
@@ -118,15 +114,12 @@ export class FlashsaleService {
         }
 
         const result = await query.getMany();
-        console.log(query.getSql());
         
         return result;
     }
     async getFlashsaleBefore1hour(){
         const currentDate = moment().format()
-        const alarmDate = moment().subtract(1,'hours').format();
-        console.log('alarm', alarmDate);
-        
+        const alarmDate = moment().subtract(1,'hours').format();        
         const query = await this.FlashsaleRepository.createQueryBuilder('flashsale')
                                                     .where('flashsale.startSale <= :alarmDate and flashsale.startSale <= :currentDate ',{alarmDate, currentDate})
                                                     .getMany();

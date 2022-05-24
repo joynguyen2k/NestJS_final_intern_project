@@ -1,5 +1,5 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { FormDataRequest } from 'nestjs-form-data';
 import { Public } from 'src/auth/decorators/public.decorator';
 import { Roles } from 'src/auth/decorators/role.decorator';
@@ -17,9 +17,8 @@ export class VoucherController {
         private voucherService: VoucherService
     ){}
     @Roles(Role.ADMIN, Role.SUPERADMIN)
+    @ApiConsumes('multipart/form-data')
     @Post()
-    @ApiBody({type:[CreateVoucherDto]})
-    @FormDataRequest()
     async createVoucher(@Body() createVoucherDto: CreateVoucherDto){
         console.log(createVoucherDto);
         
@@ -27,14 +26,12 @@ export class VoucherController {
     }
     @Public()
     @Get('/code')
-    async getVoucherByCode(@Body() code:string){
-        console.log(code);
-        
+    async getVoucherByCode(@Query('code') code:string){        
         return await this.voucherService.getVoucherByCode(code)
     }
     @Public()
     @Get()
-    async getVoucher(@Param() getVoucherDto: GetVoucherDto){
+    async getVoucher(@Query() getVoucherDto: GetVoucherDto){        
         return await this.voucherService.getVoucher(getVoucherDto);
     }
     @Public()

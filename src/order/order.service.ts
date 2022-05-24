@@ -5,7 +5,7 @@ import { ItemsService } from 'src/items/items.service';
 import { User } from 'src/user/entities/user.entity';
 import { VoucherType } from 'src/voucher/enum/voucher.enum';
 import { VoucherService } from 'src/voucher/voucher.service';
-import { Repository } from 'typeorm';
+import { Connection, Repository } from 'typeorm';
 import { CreateOrderDto } from './dtos/create-order.dto';
 import { OrderDetail } from './entity/order-detail.entity';
 import { Order } from './entity/order.entity';
@@ -18,177 +18,193 @@ import { FlashsaleService } from 'src/flashsale/flashsale.service';
 @Injectable()
 export class OrderService {
     constructor(
+      private connection: Connection,
       @InjectRepository(Order)
       private OrderRepository: Repository<Order>,
       @InjectRepository(OrderDetail)
       private OrderDetailRepository: Repository<OrderDetail>,
       private voucherService: VoucherService,
       private itemsService: ItemsService,
-      private flashsaleService: FlashsaleService
+      private flashsaleService: FlashsaleService,
     ){}
     async createOrder(createOrderDto: CreateOrderDto, user: User){
-      const {code, address, itemOrder}= createOrderDto;
-      
-      const currentDate = moment().format();
-      
-      let sumWeight = 0;
-      let totalPrice = 0;
-      let shippingPrice=0 ;
-      let discountPrice =0;
-      let itemList=[];
+      // const queryRunner = this.connection.createQueryRunner();
 
-      // Insert into order detail
-      
-      for(let i =0; i< itemOrder.length; i++){
-  
-        let item = await this.itemsService.getItemOrder(itemOrder[i].itemsId);
-        if(item &&item.itemFlashsale && item.itemFlashsale[0].quantity >=  itemOrder[i].quantity){
-          await this.flashsaleService.updateQuantityFlashsale(item.itemFlashsale[0].id, item.id, itemOrder[i].quantity )
-        }else if(item && item.quantity >=  itemOrder[i].quantity){
-          await this.itemsService.decreaseQuantityItems(itemOrder[i].itemsId,itemOrder[i].quantity )
-        }else{
-          throw new BadRequestException('Quantity is not enough to order')
-        }
-        // calculation
-        sumWeight += item.weight * itemOrder[i].quantity;
-        totalPrice += item.priceNew * itemOrder[i].quantity;
-        item.quantity = itemOrder[i].quantity;
-        // decrease quantity
-        itemList.push(item);        
-      }
+      // await queryRunner.connect();
+      // await queryRunner.startTransaction();
+      // try {
+        const {code, address, itemOrder}= createOrderDto;
+        
+        const currentDate = moment().format();
+        
+        let sumWeight = 0;
+        let totalPrice = 0;
+        let shippingPrice=0 ;
+        let discountPrice =0;
+        let itemList=[];
 
-      
-      // Shipping Price
-      if(sumWeight < 1) shippingPrice = 20000
-      else if(sumWeight >= 1 && sumWeight < 3) shippingPrice = 30000
-      else shippingPrice = sumWeight * 5000;
-
-      let totalPriceVoucher: number = totalPrice;
-      let shippingPriceVoucher :number = shippingPrice;
-      // Get voucher
-      if(code){
-        let voucherOrder= await this.voucherService.getVoucherByCode(code);
-        // Use voucher
-        if(!voucherOrder) throw new NotFoundException(`Wrong code or voucher's quantity not enough. Please check again`);
-        if(voucherOrder.quantity <=0) throw new BadRequestException(`Code ${code} out of quantity`);
-        // Discount total money
-        if(voucherOrder.discount > 100){
-          // voucher discount        
-          if(voucherOrder.type === VoucherType.DISCOUNT) { 
-            // Bill has value min
-               let min = voucherOrder.min === null? 0: voucherOrder.min;
-                if(totalPrice >= min ){
-                  discountPrice =  voucherOrder.discount ;           
-                  totalPriceVoucher = totalPrice -  discountPrice;
-                  totalPriceVoucher < 0? 0: totalPriceVoucher;
-                  await this.voucherService.decreaseVoucher(code)      
-                }            
-              } ;
-          // voucher freeship
-            if(voucherOrder.type === VoucherType.FREESHIP){
-              
-              let min = voucherOrder.min === null? 0: voucherOrder.min;
-              if(totalPrice >= min ){
-                  discountPrice =  voucherOrder.discount
-                  shippingPriceVoucher = shippingPrice - discountPrice;
-                  shippingPriceVoucher <0 ? 0:shippingPriceVoucher;
-                  await this.voucherService.decreaseVoucher(code)
-  
-              }
-            }
-      }else{
-            if(voucherOrder.type === VoucherType.DISCOUNT) {
-      
-              // Bill has value min
+        // Insert into order detail
+        
+        for(let i =0; i< itemOrder.length; i++){
     
+          let item = await this.itemsService.getItemOrder(itemOrder[i].itemsId);
+          if(item &&item.itemFlashsale && item.itemFlashsale[0].quantity >=  itemOrder[i].quantity){
+            await this.flashsaleService.updateQuantityFlashsale(item.itemFlashsale[0].id, item.id, itemOrder[i].quantity )
+          }else if(item && item.quantity >=  itemOrder[i].quantity){
+            await this.itemsService.decreaseQuantityItems(itemOrder[i].itemsId,itemOrder[i].quantity )
+          }else{
+            throw new BadRequestException('Quantity is not enough to order')
+          }
+          // calculation
+          sumWeight += item.weight * itemOrder[i].quantity;
+          totalPrice += item.priceNew * itemOrder[i].quantity;
+          item.quantity = itemOrder[i].quantity;
+          // decrease quantity
+          itemList.push(item);        
+        }
+
+        
+        // Shipping Price
+        if(sumWeight < 1) shippingPrice = 20000
+        else if(sumWeight >= 1 && sumWeight < 3) shippingPrice = 30000
+        else shippingPrice = sumWeight * 5000;
+
+        let totalPriceVoucher: number = totalPrice;
+        let shippingPriceVoucher :number = shippingPrice;
+        // Get voucher
+        if(code){
+          let voucherOrder= await this.voucherService.getVoucherByCode(code);
+          // Use voucher
+          if(!voucherOrder) throw new NotFoundException(`Wrong code or voucher's quantity not enough. Please check again`);
+          if(voucherOrder.quantity <=0) throw new BadRequestException(`Code ${code} out of quantity`);
+          // Discount total money
+          if(voucherOrder.discount > 100){
+            // voucher discount        
+            if(voucherOrder.type === VoucherType.DISCOUNT) { 
+              // Bill has value min
+                let min = voucherOrder.min === null? 0: voucherOrder.min;
+                  if(totalPrice >= min ){
+                    discountPrice =  voucherOrder.discount ;           
+                    totalPriceVoucher = totalPrice -  discountPrice;
+                    totalPriceVoucher < 0? 0: totalPriceVoucher;
+                    await this.voucherService.decreaseVoucher(code)      
+                  }            
+                } ;
+            // voucher freeship
+              if(voucherOrder.type === VoucherType.FREESHIP){
+                
+                let min = voucherOrder.min === null? 0: voucherOrder.min;
+                if(totalPrice >= min ){
+                    discountPrice =  voucherOrder.discount
+                    shippingPriceVoucher = shippingPrice - discountPrice;
+                    shippingPriceVoucher <0 ? 0:shippingPriceVoucher;
+                    await this.voucherService.decreaseVoucher(code)
+    
+                }
+              }
+            }else{
+              if(voucherOrder.type === VoucherType.DISCOUNT) {
+        
+                // Bill has value min
+      
+                    let min = voucherOrder.min === null? 0: voucherOrder.min;
+                    if(totalPrice >= min ){
+                      if(voucherOrder.max === null){
+                        discountPrice = (totalPrice * (voucherOrder.discount) /100) ;
+                      }else{
+                        discountPrice = (totalPrice * (voucherOrder.discount) /100) >= voucherOrder.max ? voucherOrder.max : (totalPrice * (voucherOrder.discount) /100) 
+                      }
+                      
+                      totalPriceVoucher = totalPrice - discountPrice;
+                      totalPriceVoucher < 0? 0: totalPriceVoucher;
+                      await this.voucherService.decreaseVoucher(code)
+    
+                      
+                    }
+                              
+                  } ;
+              // voucher freeship
+              if(voucherOrder.type === VoucherType.FREESHIP){
                   let min = voucherOrder.min === null? 0: voucherOrder.min;
                   if(totalPrice >= min ){
                     if(voucherOrder.max === null){
-                      discountPrice = (totalPrice * (voucherOrder.discount) /100) ;
+                      discountPrice =  (shippingPrice*(voucherOrder.discount) /100) ;
                     }else{
-                      discountPrice = (totalPrice * (voucherOrder.discount) /100) >= voucherOrder.max ? voucherOrder.max : (totalPrice * (voucherOrder.discount) /100) 
+                      discountPrice =  (shippingPrice*(voucherOrder.discount) /100) >= voucherOrder.max ? voucherOrder.max : (shippingPrice*(voucherOrder.discount) /100)
                     }
-                    
-                    totalPriceVoucher = totalPrice - discountPrice;
-                    totalPriceVoucher < 0? 0: totalPriceVoucher;
+                    shippingPriceVoucher  = shippingPrice - discountPrice;
+                    shippingPriceVoucher <0 ? 0:shippingPriceVoucher ;
                     await this.voucherService.decreaseVoucher(code)
-  
-                    
+
                   }
-                            
-                } ;
-            // voucher freeship
-            if(voucherOrder.type === VoucherType.FREESHIP){
-                let min = voucherOrder.min === null? 0: voucherOrder.min;
-                if(totalPrice >= min ){
-                  if(voucherOrder.max === null){
-                    discountPrice =  (shippingPrice*(voucherOrder.discount) /100) ;
-                  }else{
-                    discountPrice =  (shippingPrice*(voucherOrder.discount) /100) >= voucherOrder.max ? voucherOrder.max : (shippingPrice*(voucherOrder.discount) /100)
-                  }
-                  shippingPriceVoucher  = shippingPrice - discountPrice;
-                  shippingPriceVoucher <0 ? 0:shippingPriceVoucher ;
-                  await this.voucherService.decreaseVoucher(code)
-  
-      
                 }
-              }
-      }  
+        }  
+          const order = await this.OrderRepository.create({
+            voucher: voucherOrder,
+            addressShippingId: address,
+            status: OrderStatus.WAITING,
+            user,
+            shippingPrice: shippingPriceVoucher ,
+            itemsPrice: totalPrice,
+            total: shippingPrice + totalPriceVoucher,
+            createdAt: currentDate
+          })
+          // await queryRunner.manager.save(order)
+          
+          for(let i =0; i < itemList.length; i++){
+                    
+            const orderDetail =  this.OrderDetailRepository.create({
+              quantity: itemList[i].quantity,
+              price: itemList[i].priceNew,
+              items: itemList[i],
+              createdAt: currentDate,
+              order: order
+            })
+            // await queryRunner.manager.save(orderDetail)
+          }
+          return {
+            statusCode: 200,
+            message:'Create order successfully',
+            data: order
+          };
+        
+    
+        // Create order
+    
+        }
         const order = await this.OrderRepository.create({
-          voucher: voucherOrder,
           addressShippingId: address,
           status: OrderStatus.WAITING,
           user,
-          shippingPrice: shippingPriceVoucher ,
+          shippingPrice: shippingPrice,
           itemsPrice: totalPrice,
-          total: shippingPrice + totalPriceVoucher,
+          total: shippingPrice + totalPrice,
           createdAt: currentDate
         })
-        await order.save()
+        // await queryRunner.manager.save(order)
         
         for(let i =0; i < itemList.length; i++){
-                  
           const orderDetail = await this.OrderDetailRepository.create({
             quantity: itemList[i].quantity,
             price: itemList[i].priceNew,
             items: itemList[i],
-
-  
+            itemFlashsale: itemList[i].itemFlashsale[0],
             createdAt: currentDate,
             order: order
           })
-          await orderDetail.save()
+          // await queryRunner.manager.save(orderDetail)
         }
-        return order;
-  
-      // Create order
-  
-      }
-      const order = await this.OrderRepository.create({
-        addressShippingId: address,
-        status: OrderStatus.WAITING,
-        user,
-        shippingPrice: shippingPrice,
-        itemsPrice: totalPrice,
-        total: shippingPrice + totalPrice,
-        createdAt: currentDate
-      })
-      await order.save()
-      console.log('list', itemList);
-      
-      for(let i =0; i < itemList.length; i++){
-        console.log('fl',itemList[i]);  
-        const orderDetail = await this.OrderDetailRepository.create({
-          quantity: itemList[i].quantity,
-          price: itemList[i].priceNew,
-          items: itemList[i],
-          itemFlashsale: itemList[i].itemFlashsale[0],
-          createdAt: currentDate,
-          order: order
-        })
-        await orderDetail.save()
-      }
-      return await order;
+        return {
+          statusCode: 200,
+          message:'Create order successfully',
+          data: order
+      };
+    // }catch(error){
+    //   await queryRunner.rollbackTransaction();
+    // }finally {
+    //   // you need to release a queryRunner which was manually instantiated
+    //   await queryRunner.release();
+    // }
   }
     async getOrderByUser( getOrderDto: GetOrderDto, user: User){
       const { order, by, size, page}= getOrderDto;
@@ -242,7 +258,6 @@ export class OrderService {
       
       const {status}= updateStatusOrderDto;
       const order = await this.OrderRepository.findOneOrFail(id)
-      console.log('order',order);
       order.status = status;
       return this.OrderRepository.save(order)
       

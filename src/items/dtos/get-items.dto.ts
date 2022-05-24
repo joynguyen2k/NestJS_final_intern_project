@@ -1,5 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsOptional, IsString } from "class-validator";
+import { Type } from "class-transformer";
+import { IsNumber, IsOptional, IsString } from "class-validator";
 
 export class GetItemDto{
     @IsOptional()
@@ -11,7 +12,13 @@ export class GetItemDto{
     @ApiProperty({type: String, required:false})
     by:string;
     @ApiProperty({type: Number, required:false})
+    @IsOptional()
+    @Type(() => Number)
+    @IsNumber()
     size: number;
     @ApiProperty({type: Number, required:false})
+    @IsOptional()
+    @Type(() => Number)
+    @IsNumber()
     page:number;
 }

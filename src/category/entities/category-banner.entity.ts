@@ -5,10 +5,12 @@ import { BaseEntity, Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColu
 export class CategoryBanner extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
-  @Column()
+  @Column({ nullable: false})
   position: number;
-  @Column()
+  @Column({ nullable: false})
   url: string;
+  @Column({nullable: true})
+  public_id: string;
   @Column({nullable:true})
   categoryId: string;
   @ManyToOne(_type => Category, category => category.categoryBanner)

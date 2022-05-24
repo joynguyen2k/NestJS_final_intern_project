@@ -6,6 +6,7 @@ import { CreateVoucherDto } from './dtos/create-voucher.dto';
 import { GetVoucherDto } from './dtos/get-voucher.dto';
 import { Voucher } from './entity/voucher.entity';
 import { VoucherType } from './enum/voucher.enum';
+import { voucherPagination } from './voucher.constants';
 
 @Injectable()
 export class VoucherService {
@@ -25,28 +26,33 @@ export class VoucherService {
     async getVoucherById(id: string){
         return await this.VoucherRepository.findOne({id})
     }
-    async getVoucherByCode(code: string){
-        console.log(code);
-        
+    async getVoucherByCode(code: string){            
         const currentDate = moment().format();
         const voucher = await this.VoucherRepository.createQueryBuilder('voucher')
                                                     .where(`voucher.code = '${code}'`)
                                                     .andWhere(`voucher.startVoucher <= '${currentDate}'`)
                                                     .andWhere(`voucher.endVoucher >= '${currentDate}'`)
                                                     .andWhere(`voucher.quantity > 0`)
-                                                    .getOne();
-        console.log(voucher);
+                                                    .getOne();        
+        if(!voucher){
+          throw new NotFoundException(`Voucher with ${code} not exist`)
+        }
         
-                                                    
         return voucher;
     }
     async getVoucher(getVoucherDto: GetVoucherDto){
         const {keyword, order, by, size, page}= getVoucherDto;
+        let pageNumber =  page === undefined ? voucherPagination.PAGE : Number(page)  ;
+        let sizePage = size === undefined ? voucherPagination.PAGE_SIZE: Number(size)  ;                
+        let off = Number(size*(page-1))        
         const query = this.VoucherRepository.createQueryBuilder('voucher')
+                                            .limit(Number(sizePage))
+                                            .offset(Number(sizePage*(pageNumber-1)))
+
+                                            
         if(keyword){
             query.andWhere(
-                // 'MATCH(category.name) AGAINST(:keyword)',
-                'voucher.name LIKE :keyword',
+                'voucher.code ILIKE :keyword',
                 { keyword: `%${keyword}%` },
             )
         }
@@ -54,18 +60,9 @@ export class VoucherService {
             if(by==='DESC') query.orderBy(`voucher.${order}`, 'DESC')
             else query.orderBy(`voucher.${order}`)
         }
-        if(size){
-            if(page) {query.limit(Number(size)); query.offset(Number(size*(page-1))) } 
-            else {query.limit(Number(size)); query.offset(0) } 
-        }else {
-            if(page) {query.limit(Number(8)); query.offset(Number(8*(page-1))) } 
-            else {query.limit(Number(8)); query.offset(0) } 
-        }
-
-        const result = await query.getMany();
-        console.log(query.getSql());
-        
-        return result;
+        const voucher = await query.getMany();
+        const count = await query.getCount();        
+        return {voucher, page: pageNumber , totalPages: Math.ceil(count /sizePage) };
     }
     async updateVoucher(id: string, createVoucherDto: CreateVoucherDto){
         const {code, type, description, discount, min, max, quantity, startVoucher, endVoucher}= createVoucherDto;
@@ -90,7 +87,6 @@ export class VoucherService {
         if(voucher){
             const result= await this.VoucherRepository.delete({id});
             if(result.affected ===1){
-                console.log('Successfully');
                 return result;
                 
             }
@@ -183,12 +179,6 @@ export class VoucherService {
                     }
                   }
           }  
-           
-      
-      
-          
-         
-
 
     }
 }

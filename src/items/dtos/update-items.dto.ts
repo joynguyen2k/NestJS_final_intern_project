@@ -23,6 +23,6 @@ export class UpdateItemsDto{
     @IsEnum(ItemsStatus)
     @ApiProperty({enum:ItemsStatus, required: false})
     status: ItemsStatus;
-    @ApiProperty({ type: 'array', items: { type: 'string', format: 'binary' } })
+    @ApiProperty({ type: 'array', items: { type: 'string', format: 'binary' }, required: false })
     images:  Array<Express.Multer.File>;
 }

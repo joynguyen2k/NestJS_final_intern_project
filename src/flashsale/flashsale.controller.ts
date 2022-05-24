@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { FormDataRequest } from 'nestjs-form-data';
 import { Roles } from 'src/auth/decorators/role.decorator';
 import { Role } from 'src/user/role.enum';
@@ -16,6 +16,7 @@ export class FlashsaleController {
         private flashsaleService: FlashsaleService 
     ){}
     @Roles(Role.ADMIN, Role.SUPERADMIN)
+    @ApiConsumes('multipart/form-data')
     @Post()
     async createFlashsale(@Body() createFlashsaleDto: CreateFlashsaleDto){
         // console.log(createFlashsaleDto);
@@ -26,12 +27,14 @@ export class FlashsaleController {
     }
 
     @Get()
+    @ApiConsumes('multipart/form-data')
     async getFlashsale(@Param() getFlashsaleDto: GetFlashsaleDto){
         return await this.flashsaleService.getFlashsale(getFlashsaleDto)
     }
 
     @Roles(Role.ADMIN, Role.SUPERADMIN)
     @Patch('/items/:id')
+    @ApiConsumes('multipart/form-data')
     @FormDataRequest()
     async updateItemsFlashsale(@Param('id') id:string, @Body() itemFlashsaleDto: ItemFlashsaleDto){
         console.log(id);

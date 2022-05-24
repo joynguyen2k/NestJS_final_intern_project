@@ -4,36 +4,35 @@ import { IsDate, IsDateString, IsEnum, IsNotEmpty, IsNumber, IsString } from "cl
 import { VoucherType } from "../enum/voucher.enum";
 
 export class CreateVoucherDto{
-    @IsNotEmpty()
+    // @IsNotEmpty()
     @IsString()
-    @ApiProperty()
+    @ApiProperty({type: String})
     code: string;
     @IsEnum(VoucherType)
-    @ApiProperty()
-
+    @ApiProperty({enum:VoucherType})
     type: VoucherType;
     @IsString()
-    @ApiProperty()
+    @ApiProperty({type: String, required: false})
     description: string;
-    @IsNotEmpty()
-    @ApiProperty()
-    
+    // @IsNotEmpty()
+    @ApiProperty({type: Number})
     discount: number;
+    @ApiProperty({type: Number, required: false})
     min: number;
+    @ApiProperty({type: Number, required: false})
     max: number;
-    @IsNotEmpty()
-    @ApiProperty()
-
+    // @IsNotEmpty()
+    @ApiProperty({type: Number})
     quantity: number;
-    @IsNotEmpty()
-    @ApiProperty()
-    @IsDate()
+    // @IsNotEmpty()
+    @IsDateString()
     @Type(()=>Date)
+    @ApiProperty({type: Date})
     startVoucher: Date;
-    @IsNotEmpty()
+    // @IsNotEmpty()
     @ApiProperty()
-    @IsDate()
+    @IsDateString()
     @Type(()=>Date)
+    @ApiProperty({type: Date})
     endVoucher: Date;
-
 }

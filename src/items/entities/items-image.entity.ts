@@ -5,9 +5,11 @@ import { Items } from "./items.entity";
 export class ItemsImage extends BaseEntity{
     @PrimaryGeneratedColumn('uuid')
     id: string;
-    @Column()
+    @Column({nullable: true})
     url: string;
-    @Column()
+    @Column({nullable: true})
+    public_id: string;
+    @Column({nullable: true})
     itemsId:string;
     @ManyToOne(_type=> Items, items => items.itemsImage)
     items: Items

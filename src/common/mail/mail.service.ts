@@ -5,8 +5,9 @@ import { User } from 'src/user/entities/user.entity';
 @Injectable()
 export class MailService {
     constructor(private mailerService: MailerService) {}
+
+    // Send email verify with token
     async sendUserConfirmation(user: User, token: string) {
-        
         const url = `/user/signin?token=${token}`;
         try{
             console.log('222222222222');
@@ -34,13 +35,13 @@ export class MailService {
             throw new BadRequestException(`Send mail fail!`)
         }
       }
+    // send verify email with verify code
     async sendVerifyEmail(url: string, email: string){
         try{
-            console.log('222222222222');
-            
+            console.log('222222222222');   
             const result = await this.mailerService.sendMail({
               to: email,
-              // from: '"Support Team" <support@example.com>', // override default from
+              from: '"Support Team" <joy.nguyen.bot@gmail.com>', // override default from
               subject: 'Verify email',
               html:`
               <p>Please click below to confirm your email</p>
@@ -60,13 +61,14 @@ export class MailService {
             throw new BadRequestException(`Send mail fail!`)
         }
     }
+    
     async sendEmailForgotPassword(url: string, email: string){
         try{
             console.log('222222222222');
             
             const result = await this.mailerService.sendMail({
               to: email,
-              // from: '"Support Team" <support@example.com>', // override default from
+              from: '"Support Team" <joy.nguyen.bot@gmail.com>', // override default from
               subject: 'Forgot password',
               html:`
               <p>Please click below to reset your password</p>
@@ -85,12 +87,12 @@ export class MailService {
             throw new BadRequestException(`Send mail fail!`)
         }
     }
-    async sendEmailFlashsale(url: string, flashsale_name: string,flashsale_description: string, mailList: string[], startSale: string,   ){
+    async sendEmailFlashsale(url: string, flashsale_name: string,flashsale_description: string, mail: string, startSale: string,   ){
         try{
             console.log('222222222222');
             
             const result = await this.mailerService.sendMail({
-              to: mailList,
+              to: mail,
               // from: '"Support Team" <support@example.com>', // override default from
               subject: 'Chương trình sale lớn !!!! Đừng bỏ lỡ !!!!!!!',
               html:`

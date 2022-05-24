@@ -16,6 +16,9 @@ import { APP_GUARD } from '@nestjs/core';
 import { RolesGuard } from './auth/role.guard';
 import { AuthGuard } from '@nestjs/passport';
 import { JwtAuthGuard } from './auth/jwt.guard';
+import { CloudinaryModule } from './common/cloudinary/cloudinary.module';
+import { MulterModule } from '@nestjs/platform-express';
+import { imageFileFilter } from './ultils/file-uploading';
 
 @Module({
   imports: [
@@ -41,12 +44,16 @@ import { JwtAuthGuard } from './auth/jwt.guard';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    CronModule
+    CronModule,
+    CloudinaryModule,
+    MulterModule.register({
+      dest: './uploads/',
+      fileFilter: imageFileFilter,
+    }),  
   ],
   controllers: [AppController],
   providers: [
     AppService,
-
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,

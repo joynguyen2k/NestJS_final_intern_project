@@ -16,10 +16,9 @@ export class CronService {
         private schedulerRegistry: SchedulerRegistry,
         private itemsService: ItemsService
     ){}
-    @Cron('52 * * * *')
+    @Cron('00 * * * *')
     async sendMailFlashsale() {
-        console.log(111111111);
-        
+        console.log(111111111)
         const flashsaleList = await this.flashsaleService.getFlashsaleBefore1hour();
         const mailList = await this.userService.getAllMail();
         if(flashsaleList.length > 0 ){
@@ -29,13 +28,16 @@ export class CronService {
                     const flashsale_name= flashsaleList[i].name;
                     const flashsale_description = flashsaleList[i].description
                     const startSale = flashsaleList[i].startSale.toString();
-                    await this.mailService.sendEmailFlashsale(
-                        url,
-                        flashsale_name,
-                        flashsale_description,
-                        mailList,
-                        startSale
-                     )
+                    mailList.forEach((mail)=>{
+                        this.mailService.sendEmailFlashsale(
+                            url,
+                            flashsale_name,
+                            flashsale_description,
+                            mail,
+                            startSale
+                         )
+                    })
+                   
                     await this.flashsaleService.updateSendMail(flashsaleList[i].id);
                 }else return
                 
@@ -51,9 +53,6 @@ export class CronService {
         const time = moment().subtract(5, 'minutes').format();
         const itemsDuringFlashsale = await this.itemsService.updateItemDuringFlashsale(currentDate);
         const itemsAfterFlashsale = await this.itemsService.updateItemAfterFlashsale(time,currentDate)
-        // console.log('after', itemsAfterFlashsale);
-
-        // console.log('during', itemsDuringFlashsale);
         
         
     }

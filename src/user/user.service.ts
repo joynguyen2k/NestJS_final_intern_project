@@ -34,14 +34,14 @@ export class UserService {
         const user = await this.UserRepository.findOne({username: username});
         return user;
     }
-
+    // Register user
     async signUp(createUserDto: CreateUserDto, file: any ){
         const {name, username, phone, email, password, dateOfBirth, avatar}= createUserDto;
         const salt = await bcrypt.genSalt();
-        const hashedPassword = await bcrypt.hash(password, salt)//, salt);
+        const hashedPassword = await bcrypt.hash(password, salt);
         const verifyCode= uuid();
 
-        const currentDate= moment().format();
+        const currentDate= new Date();
         const user = await this.UserRepository.findOne({username: username});
         if(user){
             throw new ConflictException('Username already exists');
@@ -53,7 +53,7 @@ export class UserService {
                 verify: false,
                 verifyCode: verifyCode,
                 avatar: file.path,
-                createdAt:currentDate
+                createdAt:currentDate,
             });
             await userCreated.save();
             await this.verifyAccount(email);
@@ -61,24 +61,27 @@ export class UserService {
 
         }
     }
+    // Verify account by send mail
     async verifyAccount(email: string){
         const user = await this.UserRepository.findOne({email});
-        const currentDate = moment().format();
+        const currentDate = new Date();
         if(!user){
             throw new NotFoundException(`User: ${email} not found`)
         }
-        if(user.verify === true) throw new BadRequestException('This account was verified')
+        if(user.verify) throw new BadRequestException('This account was verified')
         const url = process.env.HOST + `/user/signup/verify?email=${user.email}&verifyCode=${user.verifyCode}`
         const result = await this.mailService.sendVerifyEmail(url, email);
-        // user.updatedAt= currentDate;
+        user.updatedAt= currentDate;
         await user.save();
     }
+    // Verify user by click link verify
     async verifiedUser(verifyUserDto: VerifyUserDto){
         const {email, verifyCode}= verifyUserDto;
         const user = await this.UserRepository.findOne({email});
         if(!user){
             throw new NotFoundException(`User ${email} not found`)
         }
+        // Compare with verify code in table and verify code in link
         if(user.verifyCode === verifyCode){
             user.verify = true;
             user.verifyCode = null;
@@ -86,6 +89,34 @@ export class UserService {
             return {status:200, message: 'Verified Successfully'}
 
         }
+    }
+
+    // Click send email if forgot password by enter email
+    async sendEmailForgot(email: string){
+        const user = await this.UserRepository.findOne({email});  
+        // Use new verify code to verify user
+        const newVerifyCode = uuid();
+        const currentDate = new Date();
+        if(!user){
+            throw new NotFoundException(`User with ${email} not found`)
+        }
+        if (!user.verify) {
+            throw new BadRequestException(`Please verify your email.`);
+          }
+      
+        //   const time = new Date().getTime() - user.updatedAt.getTime();
+        //   const getTimeSendMail = time / (1000 * 60 * 5);
+      
+        //   if (getTimeSendMail < 1) {
+        //     throw new BadRequestException(
+        //       `Please wait ${(1 - getTimeSendMail) * 5 * 60}s`,
+        //     );
+        //   }
+        user.verifyCode = newVerifyCode;
+        user.updatedAt = currentDate;
+        await user.save();        
+        const url = process.env.HOST + `/user/forgot/?email=${user.email}&verifyCode=${user.verifyCode}`
+        const result = await this.mailService.sendEmailForgotPassword(url, email);
     }
     async forgotPassword(verifyUserDto: VerifyUserDto,forgotPasswordDto: ForgotPasswordDto){
         const {email, verifyCode}= verifyUserDto
@@ -110,28 +141,6 @@ export class UserService {
         }
         
         
-    }
-    async sendEmailForgot(email: string){
-        const user = await this.UserRepository.findOne({email});
-        
-        const newVerifyCode = uuid();
-
-        const currentDate = new Date();
-        if(!user){
-            throw new NotFoundException(`User with ${email} not found`)
-        }
-        user.verifyCode = newVerifyCode;
-        user.updatedAt = currentDate;
-
-        await user.save();        
-        const url = process.env.HOST + `/user/forgot/?email=${user.email}&verifyCode=${user.verifyCode}`
-        const result = await this.mailService.sendEmailForgotPassword(url, email);
-
-    
-        // user.updatedAt= currentDate;
-
-
-    
     }
     async signIn(signInDto: SignInDto){
         const {username, password} = signInDto;
@@ -180,10 +189,16 @@ export class UserService {
         
         return result;               
     }
-    async deleteAccount(id:string){
-        const user = await this.UserRepository.findOne(id);
-        if(user){
-            return await this.UserRepository.delete(id)
+    async deleteAccount(id:string, user: User){
+        const userDelete = await this.UserRepository.findOne(id); 
+        if(userDelete){
+            if(user.role === 'ADMIN' && userDelete.role === 'USER'){
+                return await this.UserRepository.delete(id)
+            }else if(user.role === 'SUPERADMIN' &&( userDelete.role === 'USER' || userDelete.role === 'ADMIN') ){
+                return await this.UserRepository.delete(id)
+            }else{
+                throw new BadRequestException(`Cannot delete this account`)
+            }
         }else{
             throw new NotFoundException(`User Not Found`)
         }
@@ -200,7 +215,7 @@ export class UserService {
         // return await address.save();
     }
     async getAdressByUser(user:User){
-        return await this.AddressShippingRepository.find({user})
+        return await this.AddressShippingRepository.find({user});
     }
     async getAllMail(){
         const emails = await this.UserRepository.createQueryBuilder('user')
@@ -210,20 +225,20 @@ export class UserService {
         await emails.map((e)=> emailList.push(e.email));
         return await emailList;
     }
-    async editProfile(editMyProfileDto: EditMyProfileDto, user: User){
-        const {name, phone, email, password, dateOfBirth, avatar } = editMyProfileDto;
-        const salt = await bcrypt.genSalt();
-        const hashedPassword = await bcrypt.hash(password, salt)
-
+    async editProfile(editMyProfileDto: EditMyProfileDto, user: User, file: any){
+        const {name, phone, email, dateOfBirth, password, avatar } = editMyProfileDto;
+        
         user.name = name;
         user.phone= phone;
         user.email = email;
-        user.password = hashedPassword;
         user.dateOfBirth = dateOfBirth;
-        user.avatar = avatar;
+        user.avatar = file.path;
+        if(password){
+            const salt = await bcrypt.genSalt();
+            const hashedPassword = await bcrypt.hash(password, salt)//, salt);
+            user.password = hashedPassword;
+        }
         return await user.save()
-        
     }
-
 
 }

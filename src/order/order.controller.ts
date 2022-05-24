@@ -1,6 +1,6 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { FormDataRequest } from 'nestjs-form-data';
 import { GetUser } from 'src/auth/decorators/get-user.decorator';
 import { Roles } from 'src/auth/decorators/role.decorator';
@@ -34,24 +34,19 @@ export class OrderController {
         return await this.orderService.deleteOrder(id);
     }
     @Post()
-    createOrder(@Body() createOrderDto: CreateOrderDto, @GetUser() user: User){    
-        // console.log('dto',createOrderDto);
-            
+    createOrder(@Body() createOrderDto: CreateOrderDto, @GetUser() user: User){                
         return this.orderService.createOrder(createOrderDto, user)
     }
 
-
-
     @Roles(Role.ADMIN, Role.SUPERADMIN)
+    @ApiConsumes('multipart/form-data')
     @Get()
-    async getAllOrder(@Body() getOrderDto: GetOrderDto, @GetUser() user: User){
+    async getAllOrder(@Query() getOrderDto: GetOrderDto, @GetUser() user: User){
         return await this.orderService.getAllOrder(getOrderDto,user)
     }
 
     @Get('/mine')
-    async getOrderByUser(@Body() getOrderDto: GetOrderDto, @GetUser() user: User){
-        console.log('user', user);
-        
+    async getOrderByUser(@Body() getOrderDto: GetOrderDto, @GetUser() user: User){        
         return await this.orderService.getOrderByUser(getOrderDto,user)
     }
     

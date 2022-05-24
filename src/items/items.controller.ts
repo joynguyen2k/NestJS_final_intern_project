@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UploadedFile, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UploadedFile, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileFieldsInterceptor, FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { CreateItemsDto } from './dtos/create-items.dto';
 import { ItemsService } from './items.service';
@@ -33,13 +33,13 @@ export class ItemsController {
           {name: 'images', maxCount: 20}
 
         ],
-        {
-          storage: diskStorage({
-            destination: './uploads',
-            filename: editFileName,
-          }), 
-          fileFilter:imageFileFilter
-        }
+        // {
+        //   storage: diskStorage({
+        //     destination: './uploads',
+        //     filename: editFileName,
+        //   }), 
+        //   fileFilter:imageFileFilter
+        // }
       )
     )
     createItems(
@@ -49,13 +49,7 @@ export class ItemsController {
             avatar: Express.Multer.File;
             images: Array<Express.Multer.File>;
           },
-        ){
-          console.log(createItemsDto);
-          
-          console.log(files);
-          
- 
-        // return files;
+        ){        
         return this.itemsService.createItems(createItemsDto,files)
         
     }
@@ -89,10 +83,7 @@ export class ItemsController {
     }
     @Public()
     @Get()
-    @ApiConsumes('multipart/form-data')
-    @FormDataRequest()
-
-    async getItems(@Param() getItemsDto: GetItemDto){
+    async getItems(@Query() getItemsDto: GetItemDto){      
       return this.itemsService.getItems(getItemsDto)
     }
     @Roles(Role.ADMIN, Role.SUPERADMIN)
@@ -127,8 +118,6 @@ export class ItemsController {
     @UseInterceptors(FileInterceptor('file'))
     @FormDataRequest()
     async addItemsImage(@Param('id') id:string,@UploadedFile() file: Express.Multer.File ){
-      console.log(11111111);
-      console.log(file);
       
         return await this.addItemsImage(id,file)
     }

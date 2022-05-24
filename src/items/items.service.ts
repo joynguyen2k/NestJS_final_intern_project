@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { query } from 'express';
 import * as moment from 'moment';
 import { lastValueFrom } from 'rxjs';
+import { CloudinaryService } from 'src/common/cloudinary/cloudinary.service';
 import { FlashsaleService } from 'src/flashsale/flashsale.service';
 import { Repository } from 'typeorm';
 import { CreateItemsDto } from './dtos/create-items.dto';
@@ -11,6 +12,7 @@ import { UpdateItemsDto } from './dtos/update-items.dto';
 import { ItemsImage } from './entities/items-image.entity';
 import { Items } from './entities/items.entity';
 import { ItemsStatus } from './items-status.enum';
+import { itemsPagination } from './items.constants';
 
 @Injectable()
 export class ItemsService {
@@ -21,6 +23,7 @@ export class ItemsService {
         @InjectRepository(ItemsImage)
         private ItemsImageRepository: Repository<ItemsImage>,
         // private flashsaleService: FlashsaleService,
+        private cloudinaryService: CloudinaryService,
     ){}
     async getItemById(id:string){
         const items= this.ItemsRepository.createQueryBuilder('items')
@@ -33,54 +36,59 @@ export class ItemsService {
     }
     async deleteItemsImage(id:string){
         const itemsImage = await this.ItemsImageRepository.delete(id);
-        return itemsImage;
+        return {
+            statusCode: 200,
+            message: 'Delete image successfully'
+        };
     }
     async addItemsImage(id:string, url: any){
         const itemsImage= await this.ItemsImageRepository.create({
             url,
             itemsId:id
         })
-        return await itemsImage.save();
+         await itemsImage.save()
+         return {
+            statusCode: 200,
+            message:'Add image successfully',
+            data: itemsImage
+        };
 
     }
     async createItems(createItemsDto: CreateItemsDto,files:any){
-        const {avatar, images}= files;
-        console.log(files);
-        
+        const {avatar, images}= files;        
         const {price}= createItemsDto;
-        const currentDate= moment().format()
+        const currentDate= moment().format();
+        const avatarUpload= await this.cloudinaryService.uploadImage(avatar[0]);
+        console.log('hello');
+        
         const items = await this.ItemsRepository.save({
             ...createItemsDto,
             status: ItemsStatus.ACTIVE,
             priceNew: price,
             isSale: false,
             isDeleted: false,
-            avatar: avatar[0].path,
+            avatar: avatarUpload.url,
             createdAt: currentDate
-
         })
-        // await items.save
-        // console.log(files);
-        
-        for(let i = 0; i< files.images.length; i++){
-            console.log('abc');
-            
+
+        for(let i = 0; i< images.length; i++){      
+            const resultFile = await this.cloudinaryService.uploadImage(images[i])   
             const createImage = await this.ItemsImageRepository.create({
                 items,
-                url:images[i].path
-            });
-            console.log('create',createImage);
-            
+                url:resultFile.url,
+                public_id: resultFile.public_id
+            });            
             await createImage.save()
 
         }
-        return items;
-
+        return {
+            statusCode: 200,
+            message:'Create item successfully',
+            data: items
+        };
 
     }
-    async updateItems(id:string, updateItemsDto: UpdateItemsDto){
-        console.log(updateItemsDto);
-        
+    async updateItems(id:string, updateItemsDto: UpdateItemsDto){        
         const { name,
             barcode,
             importPrice,
@@ -101,21 +109,18 @@ export class ItemsService {
             item.description= description;
             item.updatedAt= currentDate;
             item.status = status;
-
-           
-        
-
-            
-        
         return await this.ItemsRepository.save(item);
     }
     async getItems(getItemsDto: GetItemDto){
-        const {keyword, order, by, size, page}= getItemsDto;
+        const {keyword, order, by, size, page}= getItemsDto;        
+        let pageNumber =  page === undefined ? itemsPagination.PAGE : Number(page)  ;
+        let sizePage = size === undefined ? itemsPagination.PAGE_SIZE: Number(size)  ;        
         const query = this.ItemsRepository.createQueryBuilder('items')
                                             .leftJoinAndSelect('items.itemsImage','items_image')
+                                            .limit(Number(sizePage))
+                                            .offset(Number(sizePage*(pageNumber-1)))
         if(keyword){
             query.andWhere(
-                // 'MATCH(category.name) AGAINST(:keyword)',
                 'items.name LIKE :keyword',
                 { keyword: `%${keyword}%` },
             )
@@ -123,24 +128,11 @@ export class ItemsService {
         if(order){
             if(by==='DESC') query.orderBy(`items.${order}`, 'DESC')
             else query.orderBy(`items.${order}`)
-            // query.andWhere(
-            //     // 'MATCH(category.name) AGAINST(:keyword)',
-            //     'ORDER BY :order',
-            //     { order: `${order}` },
-            // )
-        }
-        if(size){
-            if(page) {query.limit(Number(size)); query.offset(Number(size*(page-1))) } 
-            else {query.limit(Number(size)); query.offset(0) } 
-        }else {
-            if(page) {query.limit(Number(8)); query.offset(Number(8*(page-1))) } 
-            else {query.limit(Number(8)); query.offset(0) } 
         }
 
-        const result = await query.getMany();
-        console.log(query.getSql());
-        
-        return result;
+        const items = await query.getMany();
+        const count = await query.getCount()        
+        return {items, pageNumber, totalPages: Math.ceil(count/sizePage)};
 
     }
     async deleteItems(id:string){
@@ -152,7 +144,6 @@ export class ItemsService {
                                         .where(`order.status IN ('WAITING','DELIVERING')`)
                                         .andWhere(`items.id = '${id}'`)
                                         .getOne();
-        console.log(itemsOrder);
         
         if(!item){
             throw new NotFoundException(`Item with ID ${id} not found`);
@@ -167,7 +158,6 @@ export class ItemsService {
         
     }
     async getItemByFlashsale(itemsId:string){
-        console.log('cúc cu');
         
         const currentDate = moment().utcOffset('0').format()
         const query= await this.ItemsRepository.createQueryBuilder('items')
@@ -200,7 +190,6 @@ export class ItemsService {
         // item.itemFlashsale[0].quantity -= quantity;
 
         if(!item){
-            console.log(111111111);
             
             item = await this.ItemsRepository.findOne({id:itemsId});
             if(!item){
@@ -210,9 +199,7 @@ export class ItemsService {
                 // item.isSale = false;
             
         }
-        // await this.ItemsRepository.save(item)
-        console.log('it', item);
-        
+        // await this.ItemsRepository.save(item)        
         return item;
     }
     async decreaseQuantityItems(itemsId: string, quantity: number){
@@ -231,10 +218,7 @@ export class ItemsService {
                                                         .andWhere(`:currentDate <=  flashsale.endSale`, {currentDate})
                                                         .andWhere('item_flashsale.quantity > 0')
                                                         .orderBy('item_flashsale.discount','DESC')
-                                                        .getMany();
-        
-        console.log('cur', curr);
-        
+                                                        .getMany();        
         
         if(items){
             for(let i =0; i< items.length; i++){
@@ -249,9 +233,7 @@ export class ItemsService {
         
        
     }
-    async updateItemAfterFlashsale(time: string, currentDate: string){
-        console.log(111111111111111111);
-        
+    async updateItemAfterFlashsale(time: string, currentDate: string){        
         const items = await this.ItemsRepository.createQueryBuilder('items')
                                                         .innerJoinAndSelect('items.itemFlashsale','item_flashsale')
                                                         .leftJoin('item_flashsale.flashsale', 'flashsale')
